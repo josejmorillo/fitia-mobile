@@ -83,3 +83,16 @@ export async function deleteFood(id: number): Promise<void> {
   const db = await getDatabase();
   await db.runAsync('DELETE FROM foods WHERE id = ?', [id]);
 }
+
+export async function countFoodReferences(id: number): Promise<number> {
+  const db = await getDatabase();
+  const items = await db.getFirstAsync<{ c: number }>(
+    'SELECT COUNT(*) AS c FROM daily_log_items WHERE food_id = ?',
+    [id]
+  );
+  const recipes = await db.getFirstAsync<{ c: number }>(
+    'SELECT COUNT(*) AS c FROM recipe_foods WHERE food_id = ?',
+    [id]
+  );
+  return (items?.c ?? 0) + (recipes?.c ?? 0);
+}

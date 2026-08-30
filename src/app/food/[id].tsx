@@ -1,29 +1,98 @@
-import { useLocalSearchParams } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { FoodForm } from '@/components/food/FoodForm';
+import {
+  countFoodReferences,
+  deleteFood,
+  getFood,
+  updateFood,
+} from '@/services/foodService';
+import { colors } from '@/utils/colors';
+import type { Food } from '@/utils/types';
 
 export default function EditFoodScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const [food, setFood] = useState<Food | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getFood(Number(id)).then((f) => {
+      setFood(f);
+      setLoading(false);
+    });
+  }, [id]);
+
+  async function handleDelete() {
+    const refs = await countFoodReferences(Number(id));
+    if (refs > 0) {
+      Alert.alert('No se puede borrar', 'Este alimento está en uso en tu diario o recetas.');
+      return;
+    }
+    Alert.alert('Borrar alimento', '¿Seguro que quieres borrarlo?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Borrar',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteFood(Number(id));
+          router.back();
+        },
+      },
+    ]);
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={colors.primaryDark} />
+      </View>
+    );
+  }
+
+  if (!food) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.notFound}>Alimento no encontrado</Text>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Editar alimento</Text>
-      <Text style={styles.subtitle}>ID: {id}</Text>
-    </View>
+    <>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <Pressable onPress={handleDelete} hitSlop={8}>
+              <Ionicons name="trash-outline" size={22} color="#ff4d4d" />
+            </Pressable>
+          ),
+        }}
+      />
+      <FoodForm
+        initial={food}
+        submitLabel="Guardar cambios"
+        onSubmit={async (input) => {
+          await updateFood(Number(id), input);
+          router.back();
+        }}
+      />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    backgroundColor: colors.background,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#757575',
+  notFound: {
+    color: colors.textSecondary,
+    fontSize: 15,
   },
 });

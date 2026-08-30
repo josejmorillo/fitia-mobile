@@ -1,4 +1,4 @@
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,6 +26,7 @@ import { foodMacros, sumMacros } from '@/utils/macros';
 import type { DailyLogItem, Food, MealType, UserProfile } from '@/utils/types';
 
 export default function PlanScreen() {
+  const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(todayString());
   const [logId, setLogId] = useState<number | null>(null);
   const [items, setItems] = useState<DailyLogItem[]>([]);
@@ -160,6 +161,9 @@ export default function PlanScreen() {
             onDelete={handleDelete}
             onToggle={handleToggle}
             onAmountPress={setAmountItem}
+            onEdit={(foodId) =>
+              router.push({ pathname: '/food/[id]', params: { id: String(foodId) } })
+            }
           />
         ))}
       </ScrollView>

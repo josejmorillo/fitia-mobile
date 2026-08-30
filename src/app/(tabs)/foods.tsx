@@ -42,7 +42,11 @@ export default function FoodsScreen() {
         keyExtractor={(f) => String(f.id)}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
-          <View style={styles.row}>
+          <Pressable
+            style={styles.row}
+            onPress={() =>
+              router.push({ pathname: '/food/[id]', params: { id: String(item.id) } })
+            }>
             <Text style={styles.emoji}>{item.emoji}</Text>
             <View style={styles.info}>
               <Text style={styles.name} numberOfLines={1}>
@@ -53,7 +57,8 @@ export default function FoodsScreen() {
                 {item.fatPer100g} /100g
               </Text>
             </View>
-          </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+          </Pressable>
         )}
         ListEmptyComponent={
           <Text style={styles.empty}>

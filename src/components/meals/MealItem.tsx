@@ -10,9 +10,10 @@ interface MealItemProps {
   onDelete: (id: number) => void;
   onToggle: (id: number) => void;
   onAmountPress: (item: DailyLogItem) => void;
+  onEdit?: (foodId: number) => void;
 }
 
-export function MealItem({ item, onDelete, onToggle, onAmountPress }: MealItemProps) {
+export function MealItem({ item, onDelete, onToggle, onAmountPress, onEdit }: MealItemProps) {
   const food = item.food;
   if (!food) return null;
 
@@ -60,9 +61,16 @@ export function MealItem({ item, onDelete, onToggle, onAmountPress }: MealItemPr
           <Text style={[styles.macro, { color: colors.carbs }]}>{Math.round(macros.carbs)}C</Text>
           <Text style={[styles.macro, { color: colors.fat }]}>{Math.round(macros.fat)}G</Text>
         </View>
-        <Pressable style={styles.deleteBtn} onPress={() => onDelete(item.id)} hitSlop={8}>
-          <Ionicons name="trash-outline" size={16} color="#ff4d4d" />
-        </Pressable>
+        <View style={styles.actionButtons}>
+          {onEdit && (
+            <Pressable style={styles.editBtn} onPress={() => onEdit(food.id)} hitSlop={6}>
+              <Ionicons name="pencil-outline" size={15} color="#007AFF" />
+            </Pressable>
+          )}
+          <Pressable style={styles.deleteBtn} onPress={() => onDelete(item.id)} hitSlop={6}>
+            <Ionicons name="trash-outline" size={15} color="#ff4d4d" />
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -143,6 +151,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     lineHeight: 13,
+  },
+  actionButtons: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 4,
+  },
+  editBtn: {
+    padding: 2,
   },
   deleteBtn: {
     padding: 2,
