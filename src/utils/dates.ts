@@ -30,3 +30,8 @@ export function formatShortDate(dateString: string): string {
   const d = parseDateString(dateString);
   return `${d.getDate()}/${d.getMonth() + 1}/${String(d.getFullYear()).slice(2)}`;
 }
+
+export function formatDateFull(dateString: string): string {
+  const d = parseDateString(dateString);
+  return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}

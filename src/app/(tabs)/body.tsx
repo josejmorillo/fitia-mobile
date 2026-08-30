@@ -18,13 +18,13 @@ import type { BodyMeasurement } from '@/utils/types';
 type MetricKey = keyof Omit<BodyMeasurement, 'id' | 'date'>;
 type Selection = MetricKey | 'all';
 
-const METRICS: { key: MetricKey; label: string; unit: string; color: string }[] = [
-  { key: 'weight', label: 'Peso', unit: 'kg', color: '#2196F3' },
-  { key: 'chest', label: 'Pecho', unit: 'cm', color: '#FF9800' },
-  { key: 'waist', label: 'Cintura', unit: 'cm', color: '#4CAF50' },
-  { key: 'hips', label: 'Cadera', unit: 'cm', color: '#9C27B0' },
-  { key: 'biceps', label: 'Bíceps', unit: 'cm', color: '#F44336' },
-  { key: 'thighs', label: 'Muslo', unit: 'cm', color: '#00BCD4' },
+const METRICS: { key: MetricKey; label: string; unit: string; color: string; soft: string }[] = [
+  { key: 'weight', label: 'Peso', unit: 'kg', color: '#2196F3', soft: '#E3F2FD' },
+  { key: 'chest', label: 'Pecho', unit: 'cm', color: '#FF9800', soft: '#FFF3E0' },
+  { key: 'waist', label: 'Cintura', unit: 'cm', color: '#4CAF50', soft: '#E8F5E9' },
+  { key: 'hips', label: 'Cadera', unit: 'cm', color: '#9C27B0', soft: '#F3E5F5' },
+  { key: 'biceps', label: 'Bíceps', unit: 'cm', color: '#F44336', soft: '#FFEBEE' },
+  { key: 'thighs', label: 'Muslo', unit: 'cm', color: '#00BCD4', soft: '#E0F7FA' },
 ];
 
 export default function BodyScreen() {
@@ -92,9 +92,16 @@ export default function BodyScreen() {
             contentContainerStyle={styles.chipsContent}>
             {showAll && (
               <Pressable
-                style={[styles.chip, selected === 'all' && styles.chipSelected]}
+                style={[
+                  styles.chip,
+                  { backgroundColor: selected === 'all' ? colors.primary : colors.background },
+                ]}
                 onPress={() => setSelected('all')}>
-                <Text style={[styles.chipText, selected === 'all' && styles.chipTextSelected]}>
+                <Text
+                  style={[
+                    styles.chipText,
+                    { color: selected === 'all' ? '#1A1A1A' : colors.text },
+                  ]}>
                   Todas
                 </Text>
               </Pressable>
@@ -104,9 +111,9 @@ export default function BodyScreen() {
               return (
                 <Pressable
                   key={m.key}
-                  style={[styles.chip, isSelected && styles.chipSelected]}
+                  style={[styles.chip, { backgroundColor: isSelected ? m.color : m.soft }]}
                   onPress={() => setSelected(m.key)}>
-                  <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                  <Text style={[styles.chipText, { color: isSelected ? '#FFFFFF' : m.color }]}>
                     {m.label}
                   </Text>
                 </Pressable>
@@ -192,21 +199,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 18,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
     marginRight: 8,
-  },
-  chipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
   },
   chipText: {
     fontSize: 13,
-    color: colors.text,
-  },
-  chipTextSelected: {
-    color: '#1A1A1A',
     fontWeight: '600',
   },
   empty: {

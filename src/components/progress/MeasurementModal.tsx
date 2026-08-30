@@ -1,3 +1,4 @@
+import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useEffect, useState } from 'react';
 import {
   Modal,
@@ -10,7 +11,7 @@ import {
 } from 'react-native';
 
 import { colors } from '@/utils/colors';
-import { todayString } from '@/utils/dates';
+import { formatDateFull, parseDateString, todayString, toDateString } from '@/utils/dates';
 import type { BodyMeasurement } from '@/utils/types';
 
 type MeasurementInput = Omit<BodyMeasurement, 'id'>;
@@ -48,6 +49,7 @@ function Field({
 }
 
 export function MeasurementModal({ visible, onClose, onSave }: MeasurementModalProps) {
+  const [date, setDate] = useState(todayString());
   const [weight, setWeight] = useState('');
   const [waist, setWaist] = useState('');
   const [hips, setHips] = useState('');
@@ -57,6 +59,7 @@ export function MeasurementModal({ visible, onClose, onSave }: MeasurementModalP
 
   useEffect(() => {
     if (visible) {
+      setDate(todayString());
       setWeight('');
       setWaist('');
       setHips('');
@@ -65,6 +68,18 @@ export function MeasurementModal({ visible, onClose, onSave }: MeasurementModalP
       setChest('');
     }
   }, [visible]);
+
+  function openDatePicker() {
+    DateTimePickerAndroid.open({
+      value: parseDateString(date),
+      mode: 'date',
+      onChange: (event, selectedDate) => {
+        if (event.type === 'set' && selectedDate) {
+          setDate(toDateString(selectedDate));
+        }
+      },
+    });
+  }
 
   function parseNum(s: string): number | null {
     const n = parseFloat(s.replace(',', '.'));
@@ -75,7 +90,7 @@ export function MeasurementModal({ visible, onClose, onSave }: MeasurementModalP
     const w = parseNum(weight);
     if (w == null) return;
     onSave({
-      date: todayString(),
+      date,
       weight: w,
       waist: parseNum(waist),
       hips: parseNum(hips),
@@ -96,6 +111,11 @@ export function MeasurementModal({ visible, onClose, onSave }: MeasurementModalP
               <Text style={styles.close}>✕</Text>
             </Pressable>
           </View>
+
+          <Pressable style={styles.dateBtn} onPress={openDatePicker}>
+            <Text style={styles.dateLabel}>Fecha</Text>
+            <Text style={styles.dateValue}>{formatDateFull(date)}</Text>
+          </Pressable>
 
           <ScrollView keyboardShouldPersistTaps="handled">
             <View style={styles.row}>
@@ -155,6 +175,27 @@ const styles = StyleSheet.create({
   close: {
     fontSize: 18,
     color: colors.textSecondary,
+  },
+  dateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  dateLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  dateValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.primaryDark,
   },
   row: {
     flexDirection: 'row',

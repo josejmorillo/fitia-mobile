@@ -30,10 +30,13 @@ export function ProgressChart({ series, unit = '', legend }: ProgressChartProps)
   const [width, setWidth] = useState(0);
 
   const allPoints = series.flatMap((s) => s.points);
-  if (allPoints.length < 2) {
+  const uniqueLabels = Array.from(new Set(allPoints.map((p) => p.label))).sort();
+  if (uniqueLabels.length < 2) {
     return (
       <View style={styles.empty}>
-        <Text style={styles.emptyText}>Necesitas al menos 2 mediciones para ver la evolución.</Text>
+        <Text style={styles.emptyText}>
+          Añade mediciones en al menos 2 días distintos para ver la evolución.
+        </Text>
       </View>
     );
   }
@@ -49,8 +52,6 @@ export function ProgressChart({ series, unit = '', legend }: ProgressChartProps)
 
   const chartWidth = width - PADDING_X * 2;
   const chartHeight = HEIGHT - PADDING_TOP - PADDING_BOTTOM;
-
-  const uniqueLabels = Array.from(new Set(allPoints.map((p) => p.label))).sort();
 
   const xFor = (label: string) => {
     const i = uniqueLabels.indexOf(label);
