@@ -25,3 +25,8 @@ export function formatLongDate(dateString: string): string {
   const s = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
+
+export function formatShortDate(dateString: string): string {
+  const d = parseDateString(dateString);
+  return `${d.getDate()}/${d.getMonth() + 1}/${String(d.getFullYear()).slice(2)}`;
+}
