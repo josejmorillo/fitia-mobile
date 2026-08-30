@@ -110,6 +110,27 @@ export async function getDailyLogItems(logId: number): Promise<DailyLogItem[]> {
   return rows.map(mapItemRow);
 }
 
+export async function getCaloriesByDateRange(
+  startDate: string,
+  endDate: string
+): Promise<Record<string, number>> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<{ date: string; calories: number }>(
+    `SELECT dl.date, SUM(f.calories_per_100g * dli.amount / 100) AS calories
+     FROM daily_log_items dli
+     JOIN foods f ON f.id = dli.food_id
+     JOIN daily_logs dl ON dl.id = dli.daily_log_id
+     WHERE dli.consumed = 1 AND dl.date BETWEEN ? AND ?
+     GROUP BY dl.date`,
+    [startDate, endDate]
+  );
+  const result: Record<string, number> = {};
+  for (const row of rows) {
+    result[row.date] = Math.round(row.calories);
+  }
+  return result;
+}
+
 export async function addItem(
   logId: number,
   mealType: MealType,

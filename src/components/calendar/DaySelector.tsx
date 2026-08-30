@@ -9,6 +9,7 @@ const WEEKDAYS_SHORT = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
 interface DaySelectorProps {
   selectedDate: string;
   onSelect: (date: string) => void;
+  summaries?: Record<string, { consumed: number; goal: number }>;
 }
 
 interface DayCell {
@@ -29,7 +30,13 @@ function buildDays(): DayCell[] {
   return days;
 }
 
-export function DaySelector({ selectedDate, onSelect }: DaySelectorProps) {
+function monthTitle(dateString: string): string {
+  const d = parseDateString(dateString);
+  const month = d.toLocaleDateString('es-ES', { month: 'long' });
+  return `${month} ${d.getFullYear()}`;
+}
+
+export function DaySelector({ selectedDate, onSelect, summaries }: DaySelectorProps) {
   const days = buildDays();
   const today = todayString();
 
@@ -38,6 +45,16 @@ export function DaySelector({ selectedDate, onSelect }: DaySelectorProps) {
     const isSelected = item.date === selectedDate;
     const isToday = item.date === today;
 
+    const summary = summaries?.[item.date];
+    let statusColor: string | null = null;
+    if (summary) {
+      const margin = 100;
+      if (summary.consumed > summary.goal + margin) statusColor = colors.error;
+      else if (summary.consumed < summary.goal - margin && summary.consumed > 0)
+        statusColor = colors.under;
+      else if (summary.goal > 0 && summary.consumed > 0) statusColor = colors.success;
+    }
+
     return (
       <Pressable
         style={[styles.cell, isSelected && styles.cellSelected]}
@@ -45,13 +62,22 @@ export function DaySelector({ selectedDate, onSelect }: DaySelectorProps) {
         <Text style={[styles.weekday, isSelected && styles.textSelected]}>
           {isToday ? 'Hoy' : WEEKDAYS_SHORT[d.getDay()]}
         </Text>
-        <Text style={[styles.day, isSelected && styles.textSelected]}>{d.getDate()}</Text>
+        <Text
+          style={[
+            styles.day,
+            isSelected && styles.textSelected,
+            !isSelected && statusColor ? { color: statusColor } : null,
+          ]}>
+          {d.getDate()}
+        </Text>
+        {isToday && !isSelected ? <Text style={styles.dot}>•</Text> : null}
       </Pressable>
     );
   };
 
   return (
     <View style={styles.container}>
+      <Text style={styles.monthTitle}>{monthTitle(selectedDate)}</Text>
       <FlatList
         data={days}
         keyExtractor={(item) => item.key}
@@ -70,10 +96,19 @@ const styles = StyleSheet.create({
   container: {
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  monthTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    textTransform: 'capitalize',
   },
   listContent: {
     paddingHorizontal: 8,
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   cell: {
     width: ITEM_WIDTH,
@@ -95,6 +130,12 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: '700',
     marginTop: 2,
+  },
+  dot: {
+    fontSize: 12,
+    color: colors.primary,
+    marginTop: -2,
+    lineHeight: 12,
   },
   textSelected: {
     color: '#FFFFFF',
