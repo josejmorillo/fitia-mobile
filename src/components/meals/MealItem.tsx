@@ -32,7 +32,7 @@ export function MealItem({
   return (
     <View style={styles.swipeWrapper}>
       <ReanimatedSwipeable
-        renderRightActions={() =>
+        renderLeftActions={() =>
           onCopy ? (
             <Pressable style={styles.copyAction} onPress={() => onCopy(item)}>
               <Ionicons name="copy-outline" size={18} color="#1A1A1A" />
@@ -40,7 +40,7 @@ export function MealItem({
             </Pressable>
           ) : null
         }
-        overshootRight={false}>
+        overshootLeft={false}>
         <View style={[styles.container, !consumed && styles.notConsumed]}>
           <Pressable style={styles.checkIcon} onPress={() => onToggle(item.id)} hitSlop={8}>
             <Ionicons

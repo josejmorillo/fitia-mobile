@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, ToastAndroid, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DaySelector } from '@/components/calendar/DaySelector';
@@ -123,6 +123,7 @@ export default function PlanScreen() {
   async function handleCopy(item: DailyLogItem) {
     await copyItemToDate(item.id, addDays(selectedDate, 1));
     await reload();
+    ToastAndroid.show('Alimento copiado al día siguiente', ToastAndroid.SHORT);
   }
 
   const consumedItems = items.filter((i) => i.consumed);
