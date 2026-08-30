@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -34,11 +34,13 @@ export function AiFoodSearchModal({ visible, onClose, onApply }: AiFoodSearchMod
   const [results, setResults] = useState<NutritionResult[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  function reset() {
-    setQuery('');
-    setResults([]);
-    setError(null);
-  }
+  useEffect(() => {
+    if (visible) {
+      setQuery('');
+      setResults([]);
+      setError(null);
+    }
+  }, [visible]);
 
   async function handleSearch() {
     if (!query.trim()) return;
@@ -59,7 +61,7 @@ export function AiFoodSearchModal({ visible, onClose, onApply }: AiFoodSearchMod
 
   function handleUse(data: NutritionData) {
     onApply(data);
-    reset();
+    onClose();
   }
 
   return (
