@@ -5,7 +5,7 @@ Fork independiente de la versión web (Spring Boot + React).
 
 ## Stack
 
-- Expo SDK 57 (managed) + TypeScript strict
+- Expo SDK 54 (managed) + TypeScript strict
 - expo-router (file-based routing en `src/app/`)
 - expo-sqlite (DB local), expo-secure-store (API keys), expo-camera (barcode)
 - Iconos: `@expo/vector-icons` (Ionicons)
