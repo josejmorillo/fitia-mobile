@@ -57,7 +57,11 @@ function calculateConfidence(data: NutritionData): NutritionResult['confidence']
 }
 
 function parseNutritionJson(raw: string): NutritionData {
-  const cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+  let cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+  const objMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (objMatch) {
+    cleaned = objMatch[0];
+  }
   const parsed = JSON.parse(cleaned);
 
   const toNumberOrNull = (v: unknown): number | null => {
@@ -113,6 +117,14 @@ async function readErrorDetail(response: Response): Promise<string> {
   }
 }
 
+function extractContent(json: unknown): string {
+  const obj = json as {
+    choices?: { message?: { content?: string; reasoning?: string } }[];
+  };
+  const msg = obj?.choices?.[0]?.message;
+  return msg?.content ?? msg?.reasoning ?? '';
+}
+
 async function queryGroq(input: string, apiKey: string): Promise<NutritionData> {
   const response = await fetchWithTimeout('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
@@ -125,6 +137,7 @@ async function queryGroq(input: string, apiKey: string): Promise<NutritionData> 
       ],
       temperature: 0.1,
       max_tokens: 512,
+      include_reasoning: false,
     }),
   });
 
@@ -133,8 +146,8 @@ async function queryGroq(input: string, apiKey: string): Promise<NutritionData> 
   if (!response.ok) throw new Error(`server|${await readErrorDetail(response)}`);
 
   const json = await response.json();
-  const raw: string = json?.choices?.[0]?.message?.content ?? '';
-  if (!raw) throw new Error('parse');
+  const raw = extractContent(json);
+  if (!raw.trim()) throw new Error('parse');
   return parseNutritionJson(raw);
 }
 
@@ -158,8 +171,8 @@ async function queryMistral(input: string, apiKey: string): Promise<NutritionDat
   if (!response.ok) throw new Error(`server|${await readErrorDetail(response)}`);
 
   const json = await response.json();
-  const raw: string = json?.choices?.[0]?.message?.content ?? '';
-  if (!raw) throw new Error('parse');
+  const raw = extractContent(json);
+  if (!raw.trim()) throw new Error('parse');
   return parseNutritionJson(raw);
 }
 
