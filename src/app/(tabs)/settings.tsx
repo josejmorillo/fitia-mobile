@@ -114,6 +114,7 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <Text style={styles.title}>Ajustes</Text>
         <Text style={styles.sectionTitle}>Datos personales</Text>
 
         <Text style={styles.label}>Peso (kg)</Text>
@@ -171,6 +172,12 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     paddingBottom: 40,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 4,
   },
   sectionTitle: {
     fontSize: 15,

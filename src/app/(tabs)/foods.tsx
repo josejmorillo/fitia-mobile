@@ -28,6 +28,7 @@ export default function FoodsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <Text style={styles.title}>Alimentos</Text>
       <TextInput
         style={styles.search}
         placeholder="Buscar alimento..."
@@ -75,8 +76,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  title: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: colors.text,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
   search: {
-    margin: 16,
+    marginHorizontal: 16,
     marginBottom: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,

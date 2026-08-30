@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '@/utils/colors';
-import { MEAL_EMOJIS, MEAL_LABELS } from '@/utils/constants';
+import { MEAL_LABELS } from '@/utils/constants';
 import { foodMacros } from '@/utils/macros';
 import type { DailyLogItem, MealType } from '@/utils/types';
 import { MealItem } from './MealItem';
@@ -19,7 +19,7 @@ interface MealSectionProps {
   onAmountPress: (item: DailyLogItem) => void;
 }
 
-interface MiniBarData {
+interface MiniMacro {
   key: 'P' | 'C' | 'G';
   value: number;
   goal: number;
@@ -44,16 +44,15 @@ export function MealSection({
       (acc, i) => {
         const m = foodMacros(i.food!, i.amount);
         return {
-          calories: acc.calories + m.calories,
           protein: acc.protein + m.protein,
           carbs: acc.carbs + m.carbs,
           fat: acc.fat + m.fat,
         };
       },
-      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+      { protein: 0, carbs: 0, fat: 0 }
     );
 
-  const miniBars: MiniBarData[] = [
+  const miniMacros: MiniMacro[] = [
     { key: 'P', value: mealMacros.protein, goal: goalProtein, color: colors.protein },
     { key: 'C', value: mealMacros.carbs, goal: goalCarbs, color: colors.carbs },
     { key: 'G', value: mealMacros.fat, goal: goalFat, color: colors.fat },
@@ -62,36 +61,37 @@ export function MealSection({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.headerInfo}>
-          <Text style={styles.title}>
-            {MEAL_EMOJIS[mealType]} {MEAL_LABELS[mealType]}
-          </Text>
-          <View style={styles.miniBars}>
-            {miniBars.map((m) => {
-              const pct = m.goal > 0 ? Math.min((m.value / m.goal) * 100, 100) : 0;
-              return (
-                <View key={m.key} style={styles.miniBar}>
-                  <Text style={styles.miniBarLabel}>
-                    {Math.round(pct)}% {m.key}
-                  </Text>
-                  <View style={styles.miniTrack}>
-                    <View
-                      style={[styles.miniFill, { width: `${pct}%`, backgroundColor: m.color }]}
-                    />
-                  </View>
+        <Text style={styles.title}>{MEAL_LABELS[mealType]}</Text>
+
+        <View style={styles.miniBars}>
+          {miniMacros.map((m) => {
+            const pct = m.goal > 0 ? Math.min((m.value / m.goal) * 100, 100) : 0;
+            return (
+              <View key={m.key} style={styles.miniBar}>
+                <Text style={styles.miniLabel}>
+                  <Text style={{ color: m.color, fontWeight: '700' }}>{m.key}</Text>{' '}
+                  <Text style={{ color: colors.textTertiary }}>{Math.round(m.value)}g</Text>
+                </Text>
+                <View style={styles.miniTrack}>
+                  <View
+                    style={[styles.miniFill, { width: `${pct}%`, backgroundColor: m.color }]}
+                  />
                 </View>
-              );
-            })}
-          </View>
+              </View>
+            );
+          })}
         </View>
+
         <Pressable style={styles.addBtn} onPress={() => onAdd(mealType)} hitSlop={8}>
-          <Ionicons name="add" size={24} color={colors.primaryDark} />
+          <Ionicons name="add" size={22} color={colors.primaryDark} />
         </Pressable>
       </View>
 
       {mealItems.length === 0 ? (
         <Pressable style={styles.emptyState} onPress={() => onAdd(mealType)}>
-          <Text style={styles.emptyText}>Agregar alimentos a {MEAL_LABELS[mealType].toLowerCase()}</Text>
+          <Text style={styles.emptyText}>
+            Agregar alimentos a {MEAL_LABELS[mealType].toLowerCase()}
+          </Text>
         </Pressable>
       ) : (
         <View style={styles.list}>
@@ -118,58 +118,53 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
-  },
-  headerInfo: {
-    flex: 1,
-    gap: 6,
+    gap: 12,
   },
   title: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
     color: colors.text,
+    width: 88,
   },
   miniBars: {
+    flex: 1,
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 2,
+    gap: 8,
   },
   miniBar: {
     flex: 1,
     gap: 2,
   },
+  miniLabel: {
+    fontSize: 10,
+    textAlign: 'right',
+  },
   miniTrack: {
-    height: 6,
+    height: 5,
     width: '100%',
     backgroundColor: colors.track,
     borderRadius: 9999,
     overflow: 'hidden',
-  },
-  miniBarLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.textTertiary,
-    textAlign: 'right',
   },
   miniFill: {
     height: '100%',
     borderRadius: 9999,
   },
   addBtn: {
-    padding: 4,
-    marginLeft: 8,
+    padding: 2,
+    marginLeft: 'auto',
   },
   emptyState: {
-    padding: 16,
+    padding: 14,
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.primaryDark,
     fontWeight: '500',
   },

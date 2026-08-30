@@ -188,11 +188,14 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     backgroundColor: colors.surface,
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 16,
+    paddingVertical: 12,
+    gap: 20,
   },
   bars: {
-    gap: 10,
+    flex: 1,
+    gap: 8,
   },
 });

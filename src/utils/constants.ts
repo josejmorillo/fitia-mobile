@@ -9,13 +9,6 @@ export const MEAL_LABELS: Record<MealType, string> = {
   snacks: 'Snacks',
 };
 
-export const MEAL_EMOJIS: Record<MealType, string> = {
-  breakfast: '🌅',
-  lunch: '🌞',
-  dinner: '🌙',
-  snacks: '🍿',
-};
-
 const FOOD_CATEGORIES_BASE = [
   'Aperitivos',
   'Bebidas',

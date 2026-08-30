@@ -30,12 +30,6 @@ function buildDays(): DayCell[] {
   return days;
 }
 
-function monthTitle(dateString: string): string {
-  const d = parseDateString(dateString);
-  const month = d.toLocaleDateString('es-ES', { month: 'long' });
-  return `${month} ${d.getFullYear()}`;
-}
-
 export function DaySelector({ selectedDate, onSelect, summaries }: DaySelectorProps) {
   const days = buildDays();
   const today = todayString();
@@ -77,7 +71,6 @@ export function DaySelector({ selectedDate, onSelect, summaries }: DaySelectorPr
 
   return (
     <View style={styles.container}>
-      <Text style={styles.monthTitle}>{monthTitle(selectedDate)}</Text>
       <FlatList
         data={days}
         keyExtractor={(item) => item.key}
@@ -98,17 +91,9 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
     backgroundColor: colors.surface,
   },
-  monthTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    textTransform: 'capitalize',
-  },
   listContent: {
     paddingHorizontal: 8,
-    paddingVertical: 6,
+    paddingVertical: 4,
   },
   cell: {
     width: ITEM_WIDTH,

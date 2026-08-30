@@ -25,7 +25,7 @@ export function MealItem({ item, onDelete, onToggle, onAmountPress }: MealItemPr
         <Ionicons
           name={consumed ? 'checkmark-circle' : 'ellipse-outline'}
           size={22}
-          color={consumed ? colors.success : colors.border}
+          color={consumed ? colors.primary : colors.border}
         />
       </Pressable>
 
