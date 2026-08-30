@@ -5,7 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MeasurementModal } from '@/components/progress/MeasurementModal';
-import { ProgressChart } from '@/components/progress/ProgressChart';
+import { ProgressChart, type ChartSeries } from '@/components/progress/ProgressChart';
 import {
   addMeasurement,
   deleteMeasurement,
@@ -16,20 +16,21 @@ import { formatShortDate } from '@/utils/dates';
 import type { BodyMeasurement } from '@/utils/types';
 
 type MetricKey = keyof Omit<BodyMeasurement, 'id' | 'date'>;
+type Selection = MetricKey | 'all';
 
-const METRICS: { key: MetricKey; label: string; unit: string }[] = [
-  { key: 'weight', label: 'Peso', unit: 'kg' },
-  { key: 'chest', label: 'Pecho', unit: 'cm' },
-  { key: 'waist', label: 'Cintura', unit: 'cm' },
-  { key: 'hips', label: 'Cadera', unit: 'cm' },
-  { key: 'biceps', label: 'Bíceps', unit: 'cm' },
-  { key: 'thighs', label: 'Muslo', unit: 'cm' },
+const METRICS: { key: MetricKey; label: string; unit: string; color: string }[] = [
+  { key: 'weight', label: 'Peso', unit: 'kg', color: '#2196F3' },
+  { key: 'chest', label: 'Pecho', unit: 'cm', color: '#FF9800' },
+  { key: 'waist', label: 'Cintura', unit: 'cm', color: '#4CAF50' },
+  { key: 'hips', label: 'Cadera', unit: 'cm', color: '#9C27B0' },
+  { key: 'biceps', label: 'Bíceps', unit: 'cm', color: '#F44336' },
+  { key: 'thighs', label: 'Muslo', unit: 'cm', color: '#00BCD4' },
 ];
 
 export default function BodyScreen() {
   const [measurements, setMeasurements] = useState<BodyMeasurement[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedMetric, setSelectedMetric] = useState<MetricKey>('weight');
+  const [selected, setSelected] = useState<Selection>('weight');
 
   useFocusEffect(
     useCallback(() => {
@@ -50,11 +51,29 @@ export default function BodyScreen() {
   const availableMetrics = METRICS.filter(
     (m) => m.key === 'weight' || measurements.some((meas) => meas[m.key] != null)
   );
-  const metric = METRICS.find((m) => m.key === selectedMetric) ?? METRICS[0];
+  const showAll = availableMetrics.length >= 2;
 
-  const chartPoints = measurements
-    .filter((m) => m[selectedMetric] != null)
-    .map((m) => ({ label: formatShortDate(m.date), value: m[selectedMetric]! }));
+  const pointsFor = (key: MetricKey) =>
+    measurements
+      .filter((m) => m[key] != null)
+      .map((m) => ({ label: m.date, value: m[key]! }));
+
+  let series: ChartSeries[];
+  let unit: string;
+  let legend: { label: string; color: string }[] | undefined;
+
+  if (selected === 'all') {
+    series = availableMetrics.map((m) => ({ color: m.color, points: pointsFor(m.key) }));
+    unit = '';
+    legend = availableMetrics.map((m) => ({ label: m.label, color: m.color }));
+  } else {
+    const m = METRICS.find((mm) => mm.key === selected) ?? METRICS[0];
+    series = [{ color: m.color, points: pointsFor(m.key) }];
+    unit = m.unit;
+  }
+
+  const titleLabel =
+    selected === 'all' ? 'Todas' : (METRICS.find((m) => m.key === selected)?.label ?? 'Peso');
 
   const list = [...measurements].reverse();
 
@@ -64,21 +83,30 @@ export default function BodyScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Evolución · {metric.label}</Text>
+          <Text style={styles.cardTitle}>Evolución · {titleLabel}</Text>
 
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.chips}
             contentContainerStyle={styles.chipsContent}>
+            {showAll && (
+              <Pressable
+                style={[styles.chip, selected === 'all' && styles.chipSelected]}
+                onPress={() => setSelected('all')}>
+                <Text style={[styles.chipText, selected === 'all' && styles.chipTextSelected]}>
+                  Todas
+                </Text>
+              </Pressable>
+            )}
             {availableMetrics.map((m) => {
-              const selected = m.key === selectedMetric;
+              const isSelected = m.key === selected;
               return (
                 <Pressable
                   key={m.key}
-                  style={[styles.chip, selected && styles.chipSelected]}
-                  onPress={() => setSelectedMetric(m.key)}>
-                  <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                  style={[styles.chip, isSelected && styles.chipSelected]}
+                  onPress={() => setSelected(m.key)}>
+                  <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
                     {m.label}
                   </Text>
                 </Pressable>
@@ -86,7 +114,7 @@ export default function BodyScreen() {
             })}
           </ScrollView>
 
-          <ProgressChart points={chartPoints} unit={metric.unit} />
+          <ProgressChart series={series} unit={unit} legend={legend} />
         </View>
 
         {list.length === 0 ? (

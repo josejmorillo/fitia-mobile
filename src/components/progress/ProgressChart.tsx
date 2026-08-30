@@ -1,18 +1,24 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Line, Polyline, Text as SvgText } from 'react-native-svg';
 
 import { colors } from '@/utils/colors';
+import { formatShortDate } from '@/utils/dates';
 
 export interface ChartPoint {
   label: string;
   value: number;
 }
 
-interface ProgressChartProps {
+export interface ChartSeries {
+  color: string;
   points: ChartPoint[];
-  color?: string;
+}
+
+interface ProgressChartProps {
+  series: ChartSeries[];
   unit?: string;
+  legend?: { label: string; color: string }[];
 }
 
 const HEIGHT = 220;
@@ -20,10 +26,11 @@ const PADDING_X = 16;
 const PADDING_TOP = 16;
 const PADDING_BOTTOM = 32;
 
-export function ProgressChart({ points, color = colors.primaryDark, unit = 'kg' }: ProgressChartProps) {
+export function ProgressChart({ series, unit = '', legend }: ProgressChartProps) {
   const [width, setWidth] = useState(0);
 
-  if (points.length < 2) {
+  const allPoints = series.flatMap((s) => s.points);
+  if (allPoints.length < 2) {
     return (
       <View style={styles.empty}>
         <Text style={styles.emptyText}>Necesitas al menos 2 mediciones para ver la evolución.</Text>
@@ -31,7 +38,7 @@ export function ProgressChart({ points, color = colors.primaryDark, unit = 'kg' 
     );
   }
 
-  const values = points.map((p) => p.value);
+  const values = allPoints.map((p) => p.value);
   const min = Math.min(...values);
   const max = Math.max(...values);
   const rawRange = max - min;
@@ -43,64 +50,99 @@ export function ProgressChart({ points, color = colors.primaryDark, unit = 'kg' 
   const chartWidth = width - PADDING_X * 2;
   const chartHeight = HEIGHT - PADDING_TOP - PADDING_BOTTOM;
 
-  const xFor = (i: number) => PADDING_X + (i / (points.length - 1)) * chartWidth;
-  const yFor = (v: number) => PADDING_TOP + ((top - v) / span) * chartHeight;
+  const uniqueLabels = Array.from(new Set(allPoints.map((p) => p.label))).sort();
 
-  const polyPoints = points.map((p, i) => `${xFor(i)},${yFor(p.value)}`).join(' ');
+  const xFor = (label: string) => {
+    const i = uniqueLabels.indexOf(label);
+    if (uniqueLabels.length === 1) return PADDING_X + chartWidth / 2;
+    return PADDING_X + (i / (uniqueLabels.length - 1)) * chartWidth;
+  };
+  const yFor = (v: number) => PADDING_TOP + ((top - v) / span) * chartHeight;
 
   const gridlines = [top, (top + bottom) / 2, bottom];
 
   return (
-    <View style={styles.container} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
-      {width > 0 && (
-        <Svg width={width} height={HEIGHT}>
-          {gridlines.map((g, i) => {
-            const y = yFor(g);
-            return (
-              <Line
-                key={i}
-                x1={PADDING_X}
-                y1={y}
-                x2={width - PADDING_X}
-                y2={y}
-                stroke={colors.track}
-                strokeWidth={1}
-              />
-            );
-          })}
+    <View>
+      <View style={styles.container} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+        {width > 0 && (
+          <Svg width={width} height={HEIGHT}>
+            {gridlines.map((g, i) => {
+              const y = yFor(g);
+              return (
+                <Line
+                  key={i}
+                  x1={PADDING_X}
+                  y1={y}
+                  x2={width - PADDING_X}
+                  y2={y}
+                  stroke={colors.track}
+                  strokeWidth={1}
+                />
+              );
+            })}
 
-          <SvgText x={PADDING_X} y={PADDING_TOP - 4} fontSize={10} fill={colors.textTertiary}>
-            {Math.round(top)}
-            {unit}
-          </SvgText>
-          <SvgText x={PADDING_X} y={HEIGHT - PADDING_BOTTOM + 14} fontSize={10} fill={colors.textTertiary}>
-            {Math.round(bottom)}
-            {unit}
-          </SvgText>
+            <SvgText x={PADDING_X} y={PADDING_TOP - 4} fontSize={10} fill={colors.textTertiary}>
+              {Math.round(top)}
+              {unit}
+            </SvgText>
+            <SvgText
+              x={PADDING_X}
+              y={HEIGHT - PADDING_BOTTOM + 14}
+              fontSize={10}
+              fill={colors.textTertiary}>
+              {Math.round(bottom)}
+              {unit}
+            </SvgText>
 
-          <Polyline points={polyPoints} fill="none" stroke={color} strokeWidth={2} />
+            {series.map((s, si) => {
+              const poly = s.points.map((p) => `${xFor(p.label)},${yFor(p.value)}`).join(' ');
+              return (
+                <G key={si}>
+                  {s.points.length >= 2 && (
+                    <Polyline points={poly} fill="none" stroke={s.color} strokeWidth={2} />
+                  )}
+                  {s.points.map((p, pi) => (
+                    <Circle
+                      key={pi}
+                      cx={xFor(p.label)}
+                      cy={yFor(p.value)}
+                      r={3.5}
+                      fill={s.color}
+                    />
+                  ))}
+                </G>
+              );
+            })}
 
-          {points.map((p, i) => (
-            <Circle key={i} cx={xFor(i)} cy={yFor(p.value)} r={3.5} fill={color} />
+            <SvgText
+              x={PADDING_X}
+              y={HEIGHT - 8}
+              fontSize={10}
+              fill={colors.textSecondary}
+              textAnchor="start">
+              {formatShortDate(uniqueLabels[0])}
+            </SvgText>
+            <SvgText
+              x={width - PADDING_X}
+              y={HEIGHT - 8}
+              fontSize={10}
+              fill={colors.textSecondary}
+              textAnchor="end">
+              {formatShortDate(uniqueLabels[uniqueLabels.length - 1])}
+            </SvgText>
+          </Svg>
+        )}
+      </View>
+
+      {legend && legend.length > 1 && (
+        <View style={styles.legend}>
+          {legend.map((l) => (
+            <View key={l.label} style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: l.color }]} />
+              <Text style={styles.legendText}>{l.label}</Text>
+            </View>
           ))}
-
-          <SvgText
-            x={PADDING_X}
-            y={HEIGHT - 8}
-            fontSize={10}
-            fill={colors.textSecondary}
-            textAnchor="start">
-            {points[0].label}
-          </SvgText>
-          <SvgText
-            x={width - PADDING_X}
-            y={HEIGHT - 8}
-            fontSize={10}
-            fill={colors.textSecondary}
-            textAnchor="end">
-            {points[points.length - 1].label}
-          </SvgText>
-        </Svg>
+        </View>
       )}
     </View>
   );
@@ -119,5 +161,26 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
     fontSize: 13,
     textAlign: 'center',
+  },
+  legend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  legendText: {
+    fontSize: 12,
+    color: colors.textSecondary,
   },
 });
