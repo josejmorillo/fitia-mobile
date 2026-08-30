@@ -5,22 +5,28 @@ import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-na
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getAllFoods } from '@/services/foodService';
+import { getRecipes } from '@/services/recipeService';
 import { colors } from '@/utils/colors';
-import type { Food } from '@/utils/types';
+import type { Food, Recipe } from '@/utils/types';
+
+type Mode = 'foods' | 'recipes';
 
 export default function FoodsScreen() {
   const router = useRouter();
+  const [mode, setMode] = useState<Mode>('foods');
   const [foods, setFoods] = useState<Food[]>([]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [query, setQuery] = useState('');
 
   useFocusEffect(
     useCallback(() => {
       getAllFoods().then(setFoods);
+      getRecipes().then(setRecipes);
     }, [])
   );
 
   const q = query.toLowerCase();
-  const filtered = foods.filter(
+  const filteredFoods = foods.filter(
     (f) =>
       f.name.toLowerCase().includes(q) ||
       (f.brand ?? '').toLowerCase().includes(q)
@@ -28,49 +34,97 @@ export default function FoodsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <Text style={styles.title}>Alimentos</Text>
-      <TextInput
-        style={styles.search}
-        placeholder="Buscar alimento..."
-        placeholderTextColor={colors.textSecondary}
-        value={query}
-        onChangeText={setQuery}
-      />
+      <Text style={styles.title}>Base de datos</Text>
 
-      <FlatList
-        data={filtered}
-        keyExtractor={(f) => String(f.id)}
-        contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <Pressable
-            style={styles.row}
-            onPress={() =>
-              router.push({ pathname: '/food/[id]', params: { id: String(item.id) } })
-            }>
-            <Text style={styles.emoji}>{item.emoji}</Text>
-            <View style={styles.info}>
-              <Text style={styles.name} numberOfLines={1}>
-                {item.name}
-              </Text>
-              <Text style={styles.macros}>
-                {item.caloriesPer100g} kcal · P {item.proteinPer100g} · C {item.carbsPer100g} · G{' '}
-                {item.fatPer100g} /100g
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
-          </Pressable>
-        )}
-        ListEmptyComponent={
-          <Text style={styles.empty}>
-            {foods.length === 0
-              ? 'Todavía no hay alimentos. Pulsa + para añadir el primero.'
-              : 'Sin resultados.'}
+      <View style={styles.segmented}>
+        <Pressable
+          style={[styles.segment, mode === 'foods' && styles.segmentActive]}
+          onPress={() => setMode('foods')}>
+          <Text style={[styles.segmentText, mode === 'foods' && styles.segmentTextActive]}>
+            Alimentos
           </Text>
-        }
-      />
+        </Pressable>
+        <Pressable
+          style={[styles.segment, mode === 'recipes' && styles.segmentActive]}
+          onPress={() => setMode('recipes')}>
+          <Text style={[styles.segmentText, mode === 'recipes' && styles.segmentTextActive]}>
+            Recetas
+          </Text>
+        </Pressable>
+      </View>
 
-      <Pressable style={styles.fab} onPress={() => router.push('/food/new')}>
-        <Ionicons name="add" size={28} color="#FFFFFF" />
+      {mode === 'foods' ? (
+        <>
+          <TextInput
+            style={styles.search}
+            placeholder="Buscar alimento..."
+            placeholderTextColor={colors.textSecondary}
+            value={query}
+            onChangeText={setQuery}
+          />
+          <FlatList
+            data={filteredFoods}
+            keyExtractor={(f) => String(f.id)}
+            contentContainerStyle={styles.listContent}
+            renderItem={({ item }) => (
+              <Pressable
+                style={styles.row}
+                onPress={() =>
+                  router.push({ pathname: '/food/[id]', params: { id: String(item.id) } })
+                }>
+                <Text style={styles.emoji}>{item.emoji}</Text>
+                <View style={styles.info}>
+                  <Text style={styles.name} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  <Text style={styles.macros}>
+                    {item.caloriesPer100g} kcal · P {item.proteinPer100g} · C {item.carbsPer100g} · G{' '}
+                    {item.fatPer100g} /100g
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+              </Pressable>
+            )}
+            ListEmptyComponent={
+              <Text style={styles.empty}>
+                {foods.length === 0
+                  ? 'Todavía no hay alimentos. Pulsa + para añadir el primero.'
+                  : 'Sin resultados.'}
+              </Text>
+            }
+          />
+        </>
+      ) : (
+        <FlatList
+          data={recipes}
+          keyExtractor={(r) => String(r.id)}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => (
+            <Pressable
+              style={styles.row}
+              onPress={() =>
+                router.push({ pathname: '/recipe/[id]', params: { id: String(item.id) } })
+              }>
+              <Text style={styles.emoji}>{item.emoji}</Text>
+              <View style={styles.info}>
+                <Text style={styles.name} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                <Text style={styles.macros}>{item.ingredientCount ?? 0} ingredientes</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+            </Pressable>
+          )}
+          ListEmptyComponent={
+            <Text style={styles.empty}>Todavía no hay recetas. Pulsa + para crear la primera.</Text>
+          }
+        />
+      )}
+
+      <Pressable
+        style={styles.fab}
+        onPress={() => router.push(mode === 'foods' ? '/food/new' : '/recipe/new')}>
+        <Ionicons name="add" size={28} color="#1A1A1A" />
       </Pressable>
     </SafeAreaView>
   );
@@ -88,6 +142,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 4,
+  },
+  segmented: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 8,
+    padding: 4,
+    gap: 4,
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  segmentActive: {
+    backgroundColor: colors.primary,
+  },
+  segmentText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  segmentTextActive: {
+    color: '#1A1A1A',
   },
   search: {
     marginHorizontal: 16,

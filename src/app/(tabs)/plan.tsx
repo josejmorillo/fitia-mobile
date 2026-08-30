@@ -19,11 +19,12 @@ import {
   updateItemAmount,
 } from '@/services/dailyLogService';
 import { getOrCreateProfile } from '@/services/profileService';
+import { getRecipeIngredients } from '@/services/recipeService';
 import { colors } from '@/utils/colors';
 import { MEAL_TYPES } from '@/utils/constants';
 import { addDays, todayString } from '@/utils/dates';
 import { foodMacros, sumMacros } from '@/utils/macros';
-import type { DailyLogItem, Food, MealType, UserProfile } from '@/utils/types';
+import type { DailyLogItem, Food, MealType, Recipe, UserProfile } from '@/utils/types';
 
 export default function PlanScreen() {
   const router = useRouter();
@@ -86,6 +87,16 @@ export default function PlanScreen() {
   async function handleSelectFood(food: Food) {
     if (logId == null || pickerMeal == null) return;
     await addItem(logId, pickerMeal, food.id, 100);
+    setPickerMeal(null);
+    await reload();
+  }
+
+  async function handleSelectRecipe(recipe: Recipe) {
+    if (logId == null || pickerMeal == null) return;
+    const ingredients = await getRecipeIngredients(recipe.id);
+    for (const ing of ingredients) {
+      await addItem(logId, pickerMeal, ing.foodId, ing.amount);
+    }
     setPickerMeal(null);
     await reload();
   }
@@ -172,6 +183,7 @@ export default function PlanScreen() {
         visible={pickerMeal != null}
         onClose={() => setPickerMeal(null)}
         onSelect={handleSelectFood}
+        onSelectRecipe={handleSelectRecipe}
       />
       <AmountModal
         item={amountItem}

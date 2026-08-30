@@ -20,6 +20,7 @@ export interface Recipe {
   name: string;
   emoji: string;
   ingredients: RecipeIngredient[];
+  ingredientCount?: number;
 }
 
 export interface RecipeIngredient {

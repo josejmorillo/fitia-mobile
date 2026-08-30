@@ -4,14 +4,19 @@ import { mapFoodRow, type FoodRow } from './mappers';
 
 export async function getRecipes(): Promise<Recipe[]> {
   const db = await getDatabase();
-  const rows = await db.getAllAsync<{ id: number; name: string; emoji: string | null }>(
-    'SELECT id, name, emoji FROM recipes ORDER BY name COLLATE NOCASE'
+  const rows = await db.getAllAsync<{ id: number; name: string; emoji: string | null; cnt: number }>(
+    `SELECT r.id, r.name, r.emoji, COUNT(rf.id) AS cnt
+     FROM recipes r
+     LEFT JOIN recipe_foods rf ON rf.recipe_id = r.id
+     GROUP BY r.id
+     ORDER BY r.name COLLATE NOCASE`
   );
   return rows.map((r) => ({
     id: r.id,
     name: r.name,
     emoji: r.emoji ?? '🍽️',
     ingredients: [],
+    ingredientCount: r.cnt,
   }));
 }
 
