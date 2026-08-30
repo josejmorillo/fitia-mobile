@@ -102,12 +102,23 @@ async function fetchWithTimeout(url: string, options: RequestInit): Promise<Resp
   }
 }
 
+async function readErrorDetail(response: Response): Promise<string> {
+  try {
+    const body = await response.json();
+    const msg = body?.error?.message ?? body?.message ?? body?.error?.code ?? body?.code;
+    if (msg) return `${response.status}: ${msg}`;
+    return `${response.status}`;
+  } catch {
+    return `${response.status}`;
+  }
+}
+
 async function queryGroq(input: string, apiKey: string): Promise<NutritionData> {
   const response = await fetchWithTimeout('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model: 'openai/gpt-oss-120b',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: buildUserPrompt(input) },
@@ -119,7 +130,7 @@ async function queryGroq(input: string, apiKey: string): Promise<NutritionData> 
 
   if (response.status === 401 || response.status === 403) throw new Error('auth');
   if (response.status === 429) throw new Error('rate_limit');
-  if (!response.ok) throw new Error('server');
+  if (!response.ok) throw new Error(`server|${await readErrorDetail(response)}`);
 
   const json = await response.json();
   const raw: string = json?.choices?.[0]?.message?.content ?? '';
@@ -144,7 +155,7 @@ async function queryMistral(input: string, apiKey: string): Promise<NutritionDat
 
   if (response.status === 401 || response.status === 403) throw new Error('auth');
   if (response.status === 429) throw new Error('rate_limit');
-  if (!response.ok) throw new Error('server');
+  if (!response.ok) throw new Error(`server|${await readErrorDetail(response)}`);
 
   const json = await response.json();
   const raw: string = json?.choices?.[0]?.message?.content ?? '';
@@ -153,6 +164,9 @@ async function queryMistral(input: string, apiKey: string): Promise<NutritionDat
 }
 
 function toUserMessage(err: string): string {
+  if (err.startsWith('server|')) {
+    return `Error del proveedor (${err.slice('server|'.length)}).`;
+  }
   switch (err) {
     case 'auth':
       return 'Clave de IA inválida. Revisa tu configuración.';
