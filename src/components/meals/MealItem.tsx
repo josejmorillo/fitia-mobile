@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import { Swipeable } from 'react-native-gesture-handler';
 
 import { colors } from '@/utils/colors';
 import { foodMacros } from '@/utils/macros';
@@ -23,6 +24,7 @@ export function MealItem({
   onEdit,
   onCopy,
 }: MealItemProps) {
+  const swipeableRef = useRef<Swipeable>(null);
   const food = item.food;
   if (!food) return null;
 
@@ -31,10 +33,16 @@ export function MealItem({
 
   return (
     <View style={styles.swipeWrapper}>
-      <ReanimatedSwipeable
+      <Swipeable
+        ref={swipeableRef}
         renderLeftActions={() =>
           onCopy ? (
-            <Pressable style={styles.copyAction} onPress={() => onCopy(item)}>
+            <Pressable
+              style={styles.copyAction}
+              onPress={() => {
+                onCopy(item);
+                swipeableRef.current?.close();
+              }}>
               <Ionicons name="copy-outline" size={18} color="#1A1A1A" />
               <Text style={styles.copyActionText}>Copiar</Text>
             </Pressable>
@@ -91,7 +99,7 @@ export function MealItem({
             </View>
           </View>
         </View>
-      </ReanimatedSwipeable>
+      </Swipeable>
     </View>
   );
 }
@@ -114,10 +122,10 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   copyAction: {
+    width: 80,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 16,
     gap: 2,
   },
   copyActionText: {
