@@ -11,6 +11,7 @@ import { AmountModal } from '@/components/meals/AmountModal';
 import { MealSection } from '@/components/meals/MealSection';
 import {
   addItem,
+  copyItemToDate,
   deleteItem,
   getCaloriesByDateRange,
   getDailyLogItems,
@@ -119,6 +120,11 @@ export default function PlanScreen() {
     await reload();
   }
 
+  async function handleCopy(item: DailyLogItem) {
+    await copyItemToDate(item.id, addDays(selectedDate, 1));
+    await reload();
+  }
+
   const consumedItems = items.filter((i) => i.consumed);
   const totalMacros = sumMacros(
     consumedItems.map((i) =>
@@ -175,6 +181,7 @@ export default function PlanScreen() {
             onEdit={(foodId) =>
               router.push({ pathname: '/food/[id]', params: { id: String(foodId) } })
             }
+            onCopy={handleCopy}
           />
         ))}
       </ScrollView>

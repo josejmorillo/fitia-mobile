@@ -160,3 +160,21 @@ export async function deleteItem(itemId: number): Promise<void> {
   const db = await getDatabase();
   await db.runAsync('DELETE FROM daily_log_items WHERE id = ?', [itemId]);
 }
+
+export async function copyItemToDate(itemId: number, targetDate: string): Promise<void> {
+  const db = await getDatabase();
+  const source = await db.getFirstAsync<{
+    food_id: number | null;
+    amount: number;
+    meal_type: MealType;
+  }>('SELECT food_id, amount, meal_type FROM daily_log_items WHERE id = ?', [itemId]);
+
+  if (!source || source.food_id == null) return;
+
+  const targetLog = await getOrCreateDailyLog(targetDate);
+  await db.runAsync(
+    `INSERT INTO daily_log_items (daily_log_id, meal_type, food_id, amount, consumed, sort_order, source_item_id)
+     VALUES (?, ?, ?, ?, 0, COALESCE((SELECT MAX(sort_order) + 1 FROM daily_log_items WHERE daily_log_id = ? AND meal_type = ?), 0), ?)`,
+    [targetLog.id, source.meal_type, source.food_id, source.amount, targetLog.id, source.meal_type, itemId]
+  );
+}

@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 
 import { colors } from '@/utils/colors';
 import { foodMacros } from '@/utils/macros';
@@ -11,9 +12,17 @@ interface MealItemProps {
   onToggle: (id: number) => void;
   onAmountPress: (item: DailyLogItem) => void;
   onEdit?: (foodId: number) => void;
+  onCopy?: (item: DailyLogItem) => void;
 }
 
-export function MealItem({ item, onDelete, onToggle, onAmountPress, onEdit }: MealItemProps) {
+export function MealItem({
+  item,
+  onDelete,
+  onToggle,
+  onAmountPress,
+  onEdit,
+  onCopy,
+}: MealItemProps) {
   const food = item.food;
   if (!food) return null;
 
@@ -21,62 +30,77 @@ export function MealItem({ item, onDelete, onToggle, onAmountPress, onEdit }: Me
   const consumed = item.consumed;
 
   return (
-    <View style={[styles.container, !consumed && styles.notConsumed]}>
-      <Pressable style={styles.checkIcon} onPress={() => onToggle(item.id)} hitSlop={8}>
-        <Ionicons
-          name={consumed ? 'checkmark-circle' : 'ellipse-outline'}
-          size={22}
-          color={consumed ? colors.primary : colors.border}
-        />
-      </Pressable>
-
-      <View style={styles.iconBox}>
-        <Text style={styles.emoji}>{food.emoji}</Text>
-      </View>
-
-      <View style={styles.content}>
-        <View style={styles.nameRow}>
-          <Text style={styles.name} numberOfLines={1}>
-            {food.name}
-          </Text>
-          {food.brand ? (
-            <Text style={styles.brand} numberOfLines={1}>
-              {food.brand}
-            </Text>
-          ) : null}
-        </View>
-        <View style={styles.detailsRow}>
-          <Text style={styles.details}>{Math.round(macros.calories)} kcal • </Text>
-          <Pressable onPress={() => onAmountPress(item)}>
-            <Text style={styles.amountLink}>
-              {item.amount} g
-            </Text>
-          </Pressable>
-        </View>
-      </View>
-
-      <View style={styles.right}>
-        <View style={styles.macros}>
-          <Text style={[styles.macro, { color: colors.protein }]}>{Math.round(macros.protein)}P</Text>
-          <Text style={[styles.macro, { color: colors.carbs }]}>{Math.round(macros.carbs)}C</Text>
-          <Text style={[styles.macro, { color: colors.fat }]}>{Math.round(macros.fat)}G</Text>
-        </View>
-        <View style={styles.actionButtons}>
-          {onEdit && (
-            <Pressable style={styles.editBtn} onPress={() => onEdit(food.id)} hitSlop={6}>
-              <Ionicons name="pencil-outline" size={15} color="#007AFF" />
+    <View style={styles.swipeWrapper}>
+      <ReanimatedSwipeable
+        renderRightActions={() =>
+          onCopy ? (
+            <Pressable style={styles.copyAction} onPress={() => onCopy(item)}>
+              <Ionicons name="copy-outline" size={18} color="#1A1A1A" />
+              <Text style={styles.copyActionText}>Copiar</Text>
             </Pressable>
-          )}
-          <Pressable style={styles.deleteBtn} onPress={() => onDelete(item.id)} hitSlop={6}>
-            <Ionicons name="trash-outline" size={15} color="#ff4d4d" />
+          ) : null
+        }
+        overshootRight={false}>
+        <View style={[styles.container, !consumed && styles.notConsumed]}>
+          <Pressable style={styles.checkIcon} onPress={() => onToggle(item.id)} hitSlop={8}>
+            <Ionicons
+              name={consumed ? 'checkmark-circle' : 'ellipse-outline'}
+              size={22}
+              color={consumed ? colors.primary : colors.border}
+            />
           </Pressable>
+
+          <View style={styles.iconBox}>
+            <Text style={styles.emoji}>{food.emoji}</Text>
+          </View>
+
+          <View style={styles.content}>
+            <View style={styles.nameRow}>
+              <Text style={styles.name} numberOfLines={1}>
+                {food.name}
+              </Text>
+              {food.brand ? (
+                <Text style={styles.brand} numberOfLines={1}>
+                  {food.brand}
+                </Text>
+              ) : null}
+            </View>
+            <View style={styles.detailsRow}>
+              <Text style={styles.details}>{Math.round(macros.calories)} kcal • </Text>
+              <Pressable onPress={() => onAmountPress(item)}>
+                <Text style={styles.amountLink}>{item.amount} g</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={styles.right}>
+            <View style={styles.macros}>
+              <Text style={[styles.macro, { color: colors.protein }]}>{Math.round(macros.protein)}P</Text>
+              <Text style={[styles.macro, { color: colors.carbs }]}>{Math.round(macros.carbs)}C</Text>
+              <Text style={[styles.macro, { color: colors.fat }]}>{Math.round(macros.fat)}G</Text>
+            </View>
+            <View style={styles.actionButtons}>
+              {onEdit && (
+                <Pressable style={styles.editBtn} onPress={() => onEdit(food.id)} hitSlop={6}>
+                  <Ionicons name="pencil-outline" size={15} color="#007AFF" />
+                </Pressable>
+              )}
+              <Pressable style={styles.deleteBtn} onPress={() => onDelete(item.id)} hitSlop={6}>
+                <Ionicons name="trash-outline" size={15} color="#ff4d4d" />
+              </Pressable>
+            </View>
+          </View>
         </View>
-      </View>
+      </ReanimatedSwipeable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  swipeWrapper: {
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
   container: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -88,6 +112,18 @@ const styles = StyleSheet.create({
   },
   notConsumed: {
     opacity: 0.6,
+  },
+  copyAction: {
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    gap: 2,
+  },
+  copyActionText: {
+    color: '#1A1A1A',
+    fontSize: 12,
+    fontWeight: '700',
   },
   checkIcon: {
     flexShrink: 0,

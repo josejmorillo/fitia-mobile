@@ -18,6 +18,7 @@ interface MealSectionProps {
   onToggle: (id: number) => void;
   onAmountPress: (item: DailyLogItem) => void;
   onEdit?: (foodId: number) => void;
+  onCopy?: (item: DailyLogItem) => void;
 }
 
 interface MiniMacro {
@@ -38,6 +39,7 @@ export function MealSection({
   onToggle,
   onAmountPress,
   onEdit,
+  onCopy,
 }: MealSectionProps) {
   const mealItems = items.filter((i) => i.mealType === mealType);
   const mealMacros = mealItems
@@ -105,6 +107,7 @@ export function MealSection({
               onToggle={onToggle}
               onAmountPress={onAmountPress}
               onEdit={onEdit}
+              onCopy={onCopy}
             />
           ))}
         </View>
