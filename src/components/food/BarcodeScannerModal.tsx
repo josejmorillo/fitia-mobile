@@ -79,7 +79,9 @@ export function BarcodeScannerModal({ visible, onClose, onApply }: BarcodeScanne
             <Text style={styles.hint}>Apunta al código de barras</Text>
           </View>
 
-          <View style={styles.frame} pointerEvents="none" />
+          <View style={styles.centerArea} pointerEvents="none">
+            <View style={styles.frame} />
+          </View>
 
           {status && (
             <View style={styles.statusBar}>
@@ -130,14 +132,15 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    justifyContent: 'space-between',
   },
   topBar: {
+    position: 'absolute',
+    top: 48,
+    left: 16,
+    right: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingHorizontal: 16,
-    paddingTop: 48,
   },
   closeBtn: {
     width: 40,
@@ -152,22 +155,27 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
+  centerArea: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   frame: {
     width: 260,
     height: 160,
-    alignSelf: 'center',
     borderWidth: 2,
     borderColor: '#FFFFFF',
     borderRadius: 12,
-    backgroundColor: 'transparent',
   },
   statusBar: {
+    position: 'absolute',
+    bottom: 40,
+    left: 24,
+    right: 24,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    marginHorizontal: 24,
-    marginBottom: 40,
     padding: 12,
     borderRadius: 10,
     backgroundColor: 'rgba(0,0,0,0.6)',
