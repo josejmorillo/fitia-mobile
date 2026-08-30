@@ -1,9 +1,10 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getOrCreateProfile, updateProfile } from '@/services/profileService';
-import { getApiKeys, saveApiKeys } from '@/services/keys';
+import { deleteApiKey, getApiKeys, saveApiKey } from '@/services/keys';
 import { colors } from '@/utils/colors';
 import { calculateGoals, type ActivityLevel, type GoalType, type Gender } from '@/utils/nutritionCalculator';
 
@@ -65,6 +66,8 @@ export default function SettingsScreen() {
   const [saved, setSaved] = useState(false);
   const [groqKey, setGroqKey] = useState('');
   const [mistralKey, setMistralKey] = useState('');
+  const [hasGroq, setHasGroq] = useState(false);
+  const [hasMistral, setHasMistral] = useState(false);
   const [keysSaved, setKeysSaved] = useState(false);
 
   useEffect(() => {
@@ -77,8 +80,8 @@ export default function SettingsScreen() {
       if (p.calcActivityLevel) setActivity(p.calcActivityLevel);
     });
     getApiKeys().then((k) => {
-      setGroqKey(k.groq ?? '');
-      setMistralKey(k.mistral ?? '');
+      setHasGroq(k.groq != null);
+      setHasMistral(k.mistral != null);
     });
   }, []);
 
@@ -120,9 +123,38 @@ export default function SettingsScreen() {
   }
 
   async function handleSaveKeys() {
-    await saveApiKeys({ groq: groqKey || null, mistral: mistralKey || null });
+    if (groqKey.trim()) {
+      await saveApiKey('groq', groqKey);
+      setHasGroq(true);
+    }
+    if (mistralKey.trim()) {
+      await saveApiKey('mistral', mistralKey);
+      setHasMistral(true);
+    }
+    setGroqKey('');
+    setMistralKey('');
     setKeysSaved(true);
     setTimeout(() => setKeysSaved(false), 2000);
+  }
+
+  async function handleDeleteKey(provider: 'groq' | 'mistral') {
+    await deleteApiKey(provider);
+    if (provider === 'groq') setHasGroq(false);
+    else setHasMistral(false);
+  }
+
+  function showGroqInfo() {
+    Alert.alert(
+      'Clave de Groq',
+      'Para obtenerla gratis (sin tarjeta):\n\n1. Ve a console.groq.com\n2. Regístrate\n3. En "API Keys" pulsa "Create API Key"\n4. Copia la clave (empieza por gsk_)'
+    );
+  }
+
+  function showMistralInfo() {
+    Alert.alert(
+      'Clave de Mistral',
+      'Para obtenerla gratis (sin tarjeta):\n\n1. Ve a console.mistral.ai\n2. Regístrate\n3. En "API Keys" crea una clave\n4. Cópiala'
+    );
   }
 
   return (
@@ -180,27 +212,55 @@ export default function SettingsScreen() {
           Puedes conseguirlas gratis en console.groq.com y console.mistral.ai.
         </Text>
 
-        <Text style={styles.label}>Clave de Groq</Text>
-        <TextInput
-          style={styles.input}
-          value={groqKey}
-          onChangeText={setGroqKey}
-          placeholder="gsk_..."
-          placeholderTextColor={colors.textTertiary}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+        <View style={styles.keyHeader}>
+          <Text style={[styles.label, styles.keyLabel]}>Clave de Groq</Text>
+          {hasGroq && <Text style={styles.savedBadge}>✓ Guardada</Text>}
+          <Pressable onPress={showGroqInfo} hitSlop={8}>
+            <Ionicons name="information-circle-outline" size={18} color={colors.textTertiary} />
+          </Pressable>
+        </View>
+        <View style={styles.keyInputRow}>
+          <TextInput
+            style={[styles.input, styles.keyInput]}
+            value={groqKey}
+            onChangeText={setGroqKey}
+            placeholder={hasGroq ? 'Introduce una nueva clave…' : 'gsk_...'}
+            placeholderTextColor={colors.textTertiary}
+            autoCapitalize="none"
+            autoCorrect={false}
+            secureTextEntry
+          />
+          {hasGroq && (
+            <Pressable onPress={() => handleDeleteKey('groq')} hitSlop={8}>
+              <Ionicons name="trash-outline" size={20} color="#ff4d4d" />
+            </Pressable>
+          )}
+        </View>
 
-        <Text style={styles.label}>Clave de Mistral</Text>
-        <TextInput
-          style={styles.input}
-          value={mistralKey}
-          onChangeText={setMistralKey}
-          placeholder="..."
-          placeholderTextColor={colors.textTertiary}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+        <View style={styles.keyHeader}>
+          <Text style={[styles.label, styles.keyLabel]}>Clave de Mistral</Text>
+          {hasMistral && <Text style={styles.savedBadge}>✓ Guardada</Text>}
+          <Pressable onPress={showMistralInfo} hitSlop={8}>
+            <Ionicons name="information-circle-outline" size={18} color={colors.textTertiary} />
+          </Pressable>
+        </View>
+        <View style={styles.keyInputRow}>
+          <TextInput
+            style={[styles.input, styles.keyInput]}
+            value={mistralKey}
+            onChangeText={setMistralKey}
+            placeholder={hasMistral ? 'Introduce una nueva clave…' : '...'}
+            placeholderTextColor={colors.textTertiary}
+            autoCapitalize="none"
+            autoCorrect={false}
+            secureTextEntry
+          />
+          {hasMistral && (
+            <Pressable onPress={() => handleDeleteKey('mistral')} hitSlop={8}>
+              <Ionicons name="trash-outline" size={20} color="#ff4d4d" />
+            </Pressable>
+          )}
+        </View>
 
         <Pressable style={styles.saveBtn} onPress={handleSaveKeys}>
           <Text style={styles.saveText}>{keysSaved ? 'Claves guardadas ✓' : 'Guardar claves'}</Text>
@@ -230,6 +290,31 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 17,
     marginBottom: 10,
+  },
+  keyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  keyLabel: {
+    flex: 1,
+    marginTop: 0,
+    marginBottom: 0,
+  },
+  savedBadge: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.success,
+  },
+  keyInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  keyInput: {
+    flex: 1,
   },
   sectionTitle: {
     fontSize: 15,

@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -11,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { searchFoodByText } from '@/services/ai/aiService';
+import { searchFoodByTextAll, type NutritionResult } from '@/services/ai/aiService';
 import { getApiKeys } from '@/services/keys';
 import { colors } from '@/utils/colors';
 import type { NutritionData } from '@/utils/types';
@@ -22,15 +23,20 @@ interface AiFoodSearchModalProps {
   onApply: (data: NutritionData) => void;
 }
 
+const PROVIDER_LABEL: Record<string, string> = {
+  groq: 'Groq',
+  mistral: 'Mistral',
+};
+
 export function AiFoodSearchModal({ visible, onClose, onApply }: AiFoodSearchModalProps) {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<NutritionData | null>(null);
+  const [results, setResults] = useState<NutritionResult[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   function reset() {
     setQuery('');
-    setResult(null);
+    setResults([]);
     setError(null);
   }
 
@@ -38,15 +44,22 @@ export function AiFoodSearchModal({ visible, onClose, onApply }: AiFoodSearchMod
     if (!query.trim()) return;
     setLoading(true);
     setError(null);
-    setResult(null);
+    setResults([]);
     const keys = await getApiKeys();
-    const res = await searchFoodByText(query.trim(), keys);
+    const res = await searchFoodByTextAll(query.trim(), keys);
     setLoading(false);
-    if (res.success) {
-      setResult(res.data);
+
+    const anySuccess = res.some((r) => r.success);
+    if (!anySuccess) {
+      setError(res[0]?.error ?? 'No se pudo obtener información.');
     } else {
-      setError(res.error);
+      setResults(res);
     }
+  }
+
+  function handleUse(data: NutritionData) {
+    onApply(data);
+    reset();
   }
 
   return (
@@ -92,24 +105,34 @@ export function AiFoodSearchModal({ visible, onClose, onApply }: AiFoodSearchMod
           </View>
         )}
 
-        {!loading && result && (
-          <View style={styles.resultCard}>
-            <Text style={styles.resultEmoji}>{result.emoji ?? '🍽️'}</Text>
-            <Text style={styles.resultName}>{result.name}</Text>
-            {result.brand ? <Text style={styles.resultBrand}>{result.brand}</Text> : null}
-            <Text style={styles.resultMacros}>
-              {result.kcal_100g != null ? `${result.kcal_100g} kcal` : '—'} · P{' '}
-              {result.protein_g ?? '—'} · C {result.carbs_g ?? '—'} · G {result.fat_g ?? '—'} /100g
-            </Text>
-            <Pressable
-              style={styles.applyBtn}
-              onPress={() => {
-                onApply(result);
-                reset();
-              }}>
-              <Text style={styles.applyText}>Usar este alimento</Text>
-            </Pressable>
-          </View>
+        {!loading && results.length > 0 && (
+          <ScrollView contentContainerStyle={styles.results}>
+            {results.map((r) => (
+              <View key={r.provider} style={styles.resultCard}>
+                <View style={styles.providerBadge}>
+                  <Text style={styles.providerText}>{PROVIDER_LABEL[r.provider] ?? r.provider}</Text>
+                </View>
+
+                {r.success ? (
+                  <>
+                    <Text style={styles.resultEmoji}>{r.data.emoji ?? '🍽️'}</Text>
+                    <Text style={styles.resultName}>{r.data.name}</Text>
+                    {r.data.brand ? <Text style={styles.resultBrand}>{r.data.brand}</Text> : null}
+                    <Text style={styles.resultMacros}>
+                      {r.data.kcal_100g != null ? `${r.data.kcal_100g} kcal` : '—'} · P{' '}
+                      {r.data.protein_g ?? '—'} · C {r.data.carbs_g ?? '—'} · G {r.data.fat_g ?? '—'}{' '}
+                      /100g
+                    </Text>
+                    <Pressable style={styles.applyBtn} onPress={() => handleUse(r.data)}>
+                      <Text style={styles.applyText}>Usar este alimento</Text>
+                    </Pressable>
+                  </>
+                ) : (
+                  <Text style={styles.resultError}>{r.error}</Text>
+                )}
+              </View>
+            ))}
+          </ScrollView>
         )}
       </SafeAreaView>
     </Modal>
@@ -168,14 +191,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
   },
+  results: {
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+    gap: 12,
+  },
   resultCard: {
-    marginHorizontal: 16,
-    marginTop: 12,
     backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     gap: 4,
+  },
+  providerBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.iconBg,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginBottom: 4,
+  },
+  providerText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   resultEmoji: {
     fontSize: 40,
@@ -184,6 +225,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: colors.text,
+    textAlign: 'center',
   },
   resultBrand: {
     fontSize: 13,
@@ -193,6 +235,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     marginTop: 4,
+  },
+  resultError: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginVertical: 8,
   },
   applyBtn: {
     marginTop: 12,

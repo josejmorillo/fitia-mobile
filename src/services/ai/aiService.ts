@@ -164,52 +164,51 @@ function toUserMessage(err: string): string {
       return 'La consulta tardó demasiado. Inténtalo de nuevo.';
     case 'parse':
       return 'No se pudo interpretar la respuesta. Prueba con otro nombre.';
+    case 'config':
+      return 'Configura una clave de Groq o Mistral en Ajustes.';
     default:
       return 'No se pudo obtener información. Rellena manualmente.';
   }
 }
 
-export async function searchFoodByText(
+export async function searchFoodByTextAll(
   input: string,
   keys: ApiKeys
-): Promise<NutritionResult> {
-  if (!keys.groq && !keys.mistral) {
-    return {
-      success: false,
-      provider: 'none',
-      confidence: 'low',
-      data: emptyData(),
-      error: 'Configura una clave de Groq o Mistral en Ajustes.',
-    };
-  }
-
-  if (keys.groq) {
-    try {
-      const data = await queryGroq(input, keys.groq);
-      return { success: true, provider: 'groq', confidence: calculateConfidence(data), data, error: null };
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'unknown';
-      if (msg === 'auth') {
-        return { success: false, provider: 'groq', confidence: 'low', data: emptyData(), error: toUserMessage(msg) };
-      }
-    }
-  }
-
-  if (keys.mistral) {
-    try {
-      const data = await queryMistral(input, keys.mistral);
-      return { success: true, provider: 'mistral', confidence: calculateConfidence(data), data, error: null };
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'unknown';
-      return { success: false, provider: 'mistral', confidence: 'low', data: emptyData(), error: toUserMessage(msg) };
-    }
-  }
-
-  return {
+): Promise<NutritionResult[]> {
+  const ok = (provider: NutritionProvider, data: NutritionData): NutritionResult => ({
+    success: true,
+    provider,
+    confidence: calculateConfidence(data),
+    data,
+    error: null,
+  });
+  const fail = (provider: NutritionProvider, err: string): NutritionResult => ({
     success: false,
-    provider: 'none',
+    provider,
     confidence: 'low',
     data: emptyData(),
-    error: 'No se pudo obtener información. Rellena manualmente.',
-  };
+    error: toUserMessage(err),
+  });
+
+  const tasks: Promise<NutritionResult>[] = [];
+  if (keys.groq) {
+    tasks.push(
+      queryGroq(input, keys.groq)
+        .then((data) => ok('groq', data))
+        .catch((err) => fail('groq', err instanceof Error ? err.message : 'unknown'))
+    );
+  }
+  if (keys.mistral) {
+    tasks.push(
+      queryMistral(input, keys.mistral)
+        .then((data) => ok('mistral', data))
+        .catch((err) => fail('mistral', err instanceof Error ? err.message : 'unknown'))
+    );
+  }
+
+  if (tasks.length === 0) {
+    return [fail('none', 'config')];
+  }
+
+  return Promise.all(tasks);
 }
