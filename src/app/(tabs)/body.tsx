@@ -15,9 +15,21 @@ import { colors } from '@/utils/colors';
 import { formatShortDate } from '@/utils/dates';
 import type { BodyMeasurement } from '@/utils/types';
 
+type MetricKey = keyof Omit<BodyMeasurement, 'id' | 'date'>;
+
+const METRICS: { key: MetricKey; label: string; unit: string }[] = [
+  { key: 'weight', label: 'Peso', unit: 'kg' },
+  { key: 'chest', label: 'Pecho', unit: 'cm' },
+  { key: 'waist', label: 'Cintura', unit: 'cm' },
+  { key: 'hips', label: 'Cadera', unit: 'cm' },
+  { key: 'biceps', label: 'Bíceps', unit: 'cm' },
+  { key: 'thighs', label: 'Muslo', unit: 'cm' },
+];
+
 export default function BodyScreen() {
   const [measurements, setMeasurements] = useState<BodyMeasurement[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
+  const [selectedMetric, setSelectedMetric] = useState<MetricKey>('weight');
 
   useFocusEffect(
     useCallback(() => {
@@ -35,9 +47,14 @@ export default function BodyScreen() {
     setMeasurements(await getMeasurements());
   }
 
+  const availableMetrics = METRICS.filter(
+    (m) => m.key === 'weight' || measurements.some((meas) => meas[m.key] != null)
+  );
+  const metric = METRICS.find((m) => m.key === selectedMetric) ?? METRICS[0];
+
   const chartPoints = measurements
-    .filter((m) => m.weight != null)
-    .map((m) => ({ label: formatShortDate(m.date), value: m.weight! }));
+    .filter((m) => m[selectedMetric] != null)
+    .map((m) => ({ label: formatShortDate(m.date), value: m[selectedMetric]! }));
 
   const list = [...measurements].reverse();
 
@@ -47,8 +64,29 @@ export default function BodyScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Evolución del peso</Text>
-          <ProgressChart points={chartPoints} />
+          <Text style={styles.cardTitle}>Evolución · {metric.label}</Text>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.chips}
+            contentContainerStyle={styles.chipsContent}>
+            {availableMetrics.map((m) => {
+              const selected = m.key === selectedMetric;
+              return (
+                <Pressable
+                  key={m.key}
+                  style={[styles.chip, selected && styles.chipSelected]}
+                  onPress={() => setSelectedMetric(m.key)}>
+                  <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                    {m.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
+          <ProgressChart points={chartPoints} unit={metric.unit} />
         </View>
 
         {list.length === 0 ? (
@@ -115,6 +153,33 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
     marginBottom: 8,
+  },
+  chips: {
+    marginBottom: 8,
+  },
+  chipsContent: {
+    paddingRight: 8,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 18,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginRight: 8,
+  },
+  chipSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  chipText: {
+    fontSize: 13,
+    color: colors.text,
+  },
+  chipTextSelected: {
+    color: '#1A1A1A',
+    fontWeight: '600',
   },
   empty: {
     textAlign: 'center',
