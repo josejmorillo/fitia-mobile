@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getOrCreateProfile, updateProfile } from '@/services/profileService';
+import { getApiKeys, saveApiKeys } from '@/services/keys';
 import { colors } from '@/utils/colors';
 import { calculateGoals, type ActivityLevel, type GoalType, type Gender } from '@/utils/nutritionCalculator';
 
@@ -62,6 +63,9 @@ export default function SettingsScreen() {
   const [goalType, setGoalType] = useState<GoalType>('maintenance');
   const [activity, setActivity] = useState<ActivityLevel>('moderate');
   const [saved, setSaved] = useState(false);
+  const [groqKey, setGroqKey] = useState('');
+  const [mistralKey, setMistralKey] = useState('');
+  const [keysSaved, setKeysSaved] = useState(false);
 
   useEffect(() => {
     getOrCreateProfile().then((p) => {
@@ -71,6 +75,10 @@ export default function SettingsScreen() {
       if (p.gender) setGender(p.gender);
       if (p.calcGoalType) setGoalType(p.calcGoalType);
       if (p.calcActivityLevel) setActivity(p.calcActivityLevel);
+    });
+    getApiKeys().then((k) => {
+      setGroqKey(k.groq ?? '');
+      setMistralKey(k.mistral ?? '');
     });
   }, []);
 
@@ -109,6 +117,12 @@ export default function SettingsScreen() {
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  }
+
+  async function handleSaveKeys() {
+    await saveApiKeys({ groq: groqKey || null, mistral: mistralKey || null });
+    setKeysSaved(true);
+    setTimeout(() => setKeysSaved(false), 2000);
   }
 
   return (
@@ -159,6 +173,38 @@ export default function SettingsScreen() {
         <Pressable style={styles.saveBtn} onPress={handleSave}>
           <Text style={styles.saveText}>{saved ? 'Guardado ✓' : 'Calcular y guardar objetivos'}</Text>
         </Pressable>
+
+        <Text style={styles.sectionTitle}>API de IA (opcional)</Text>
+        <Text style={styles.hint}>
+          Claves para la búsqueda de alimentos por IA. Se guardan de forma segura en tu dispositivo.
+          Puedes conseguirlas gratis en console.groq.com y console.mistral.ai.
+        </Text>
+
+        <Text style={styles.label}>Clave de Groq</Text>
+        <TextInput
+          style={styles.input}
+          value={groqKey}
+          onChangeText={setGroqKey}
+          placeholder="gsk_..."
+          placeholderTextColor={colors.textTertiary}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        <Text style={styles.label}>Clave de Mistral</Text>
+        <TextInput
+          style={styles.input}
+          value={mistralKey}
+          onChangeText={setMistralKey}
+          placeholder="..."
+          placeholderTextColor={colors.textTertiary}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        <Pressable style={styles.saveBtn} onPress={handleSaveKeys}>
+          <Text style={styles.saveText}>{keysSaved ? 'Claves guardadas ✓' : 'Guardar claves'}</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -178,6 +224,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.text,
     marginBottom: 4,
+  },
+  hint: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 17,
+    marginBottom: 10,
   },
   sectionTitle: {
     fontSize: 15,

@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
   Pressable,
@@ -11,7 +12,9 @@ import {
 import type { FoodInput } from '@/services/foodService';
 import { colors } from '@/utils/colors';
 import { FOOD_CATEGORIES } from '@/utils/constants';
-import type { Food } from '@/utils/types';
+import type { Food, NutritionData } from '@/utils/types';
+import { AiFoodSearchModal } from './AiFoodSearchModal';
+import { BarcodeScannerModal } from './BarcodeScannerModal';
 
 interface FoodFormProps {
   initial?: Food | null;
@@ -56,6 +59,19 @@ export function FoodForm({ initial, onSubmit, submitLabel }: FoodFormProps) {
   const [emoji, setEmoji] = useState(initial?.emoji ?? '🍽️');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [aiVisible, setAiVisible] = useState(false);
+  const [barcodeVisible, setBarcodeVisible] = useState(false);
+
+  function applyNutritionData(data: NutritionData) {
+    if (data.name) setName(data.name);
+    if (data.brand) setBrand(data.brand);
+    if (data.kcal_100g != null) setKcal(String(data.kcal_100g));
+    if (data.protein_g != null) setProtein(String(data.protein_g));
+    if (data.carbs_g != null) setCarbs(String(data.carbs_g));
+    if (data.fat_g != null) setFat(String(data.fat_g));
+    if (data.category && FOOD_CATEGORIES.includes(data.category)) setCategory(data.category);
+    if (data.emoji) setEmoji(data.emoji);
+  }
 
   function parseNum(s: string): number {
     return parseFloat(s.replace(',', '.')) || 0;
@@ -88,12 +104,24 @@ export function FoodForm({ initial, onSubmit, submitLabel }: FoodFormProps) {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled">
-      <View style={styles.field}>
-        <Text style={styles.label}>Nombre *</Text>
+    <>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled">
+        <View style={styles.discoveryRow}>
+          <Pressable style={styles.discoveryBtn} onPress={() => setAiVisible(true)}>
+            <Ionicons name="sparkles-outline" size={18} color="#1A1A1A" />
+            <Text style={styles.discoveryText}>Buscar por IA</Text>
+          </Pressable>
+          <Pressable style={styles.discoveryBtn} onPress={() => setBarcodeVisible(true)}>
+            <Ionicons name="barcode-outline" size={18} color="#1A1A1A" />
+            <Text style={styles.discoveryText}>Escanear código</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.label}>Nombre *</Text>
         <TextInput
           style={styles.input}
           value={name}
@@ -153,7 +181,19 @@ export function FoodForm({ initial, onSubmit, submitLabel }: FoodFormProps) {
       <Pressable style={styles.saveBtn} onPress={handleSave} disabled={saving}>
         <Text style={styles.saveText}>{saving ? 'Guardando…' : submitLabel}</Text>
       </Pressable>
-    </ScrollView>
+      </ScrollView>
+
+      <AiFoodSearchModal
+        visible={aiVisible}
+        onClose={() => setAiVisible(false)}
+        onApply={applyNutritionData}
+      />
+      <BarcodeScannerModal
+        visible={barcodeVisible}
+        onClose={() => setBarcodeVisible(false)}
+        onApply={applyNutritionData}
+      />
+    </>
   );
 }
 
@@ -165,6 +205,26 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     paddingBottom: 40,
+  },
+  discoveryRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  discoveryBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    paddingVertical: 12,
+  },
+  discoveryText: {
+    color: '#1A1A1A',
+    fontSize: 14,
+    fontWeight: '700',
   },
   field: {
     marginBottom: 14,
