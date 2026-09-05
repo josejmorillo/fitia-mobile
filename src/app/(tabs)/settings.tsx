@@ -5,6 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getOrCreateProfile, updateProfile } from '@/services/profileService';
 import { deleteApiKey, getApiKeys, saveApiKey } from '@/services/keys';
+import { exportBackup } from '@/services/backupService';
+import { importFromText, pickJsonFile } from '@/services/shareService';
 import { colors } from '@/utils/colors';
 import { calculateGoals, type ActivityLevel, type GoalType, type Gender } from '@/utils/nutritionCalculator';
 
@@ -143,6 +145,28 @@ export default function SettingsScreen() {
     else setHasMistral(false);
   }
 
+  async function handleExportBackup() {
+    try {
+      await exportBackup();
+    } catch {
+      Alert.alert('Error', 'No se pudo exportar la copia de seguridad.');
+    }
+  }
+
+  async function handleImportFile() {
+    try {
+      const text = await pickJsonFile();
+      if (text == null) return;
+      const message = await importFromText(text);
+      Alert.alert('Importación completada', message);
+    } catch (e) {
+      Alert.alert(
+        'No se pudo importar',
+        e instanceof Error ? e.message : 'El archivo no es válido.'
+      );
+    }
+  }
+
   function showGroqInfo() {
     Alert.alert(
       'Clave de Groq',
@@ -265,6 +289,25 @@ export default function SettingsScreen() {
         <Pressable style={styles.saveBtn} onPress={handleSaveKeys}>
           <Text style={styles.saveText}>{keysSaved ? 'Claves guardadas ✓' : 'Guardar claves'}</Text>
         </Pressable>
+
+        <Text style={styles.sectionTitle}>Datos y copias de seguridad</Text>
+        <Text style={styles.hint}>
+          Exporta tu base de datos (alimentos, recetas, diario, mediciones y perfil) a un archivo
+          JSON para hacer una copia manual o pasarla a otro dispositivo. También puedes importar un
+          alimento o receta que te hayan compartido: toca el archivo .json y elige NutriFit, o usa
+          el botón Importar.
+        </Text>
+
+        <View style={styles.dataRow}>
+          <Pressable style={[styles.dataBtn, styles.dataBtnPrimary]} onPress={handleExportBackup}>
+            <Ionicons name="share-outline" size={18} color="#1A1A1A" />
+            <Text style={styles.dataBtnText}>Exportar base de datos</Text>
+          </Pressable>
+          <Pressable style={[styles.dataBtn, styles.dataBtnGhost]} onPress={handleImportFile}>
+            <Ionicons name="download-outline" size={18} color={colors.primaryDark} />
+            <Text style={styles.dataBtnGhostText}>Importar archivo</Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -375,6 +418,37 @@ const styles = StyleSheet.create({
   saveText: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '700',
+  },
+  dataRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  dataBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: 10,
+    paddingVertical: 12,
+  },
+  dataBtnPrimary: {
+    backgroundColor: colors.primary,
+  },
+  dataBtnGhost: {
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  dataBtnText: {
+    color: '#1A1A1A',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  dataBtnGhostText: {
+    color: colors.primaryDark,
+    fontSize: 13,
     fontWeight: '700',
   },
 });

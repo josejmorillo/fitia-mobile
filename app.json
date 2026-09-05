@@ -12,6 +12,22 @@
     },
     "android": {
       "package": "com.nutrifit.app",
+      "intentFilters": [
+        {
+          "action": "SEND",
+          "category": ["DEFAULT"],
+          "data": [{ "mimeType": "application/json" }, { "mimeType": "application/octet-stream" }]
+        },
+        {
+          "action": "VIEW",
+          "category": ["DEFAULT"],
+          "data": [
+            { "scheme": "content", "mimeType": "application/json" },
+            { "scheme": "file", "mimeType": "application/json" },
+            { "scheme": "content", "mimeType": "application/octet-stream" }
+          ]
+        }
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#FFD700",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -35,7 +51,8 @@
       ],
       "expo-sqlite",
       "expo-secure-store",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true
