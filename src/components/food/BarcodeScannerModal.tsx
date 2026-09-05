@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { lookupBarcode } from '@/services/ai/openFoodFactsService';
@@ -17,13 +17,15 @@ export function BarcodeScannerModal({ visible, onClose, onApply }: BarcodeScanne
   const [permission, requestPermission] = useCameraPermissions();
   const [scanning, setScanning] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [wasVisible, setWasVisible] = useState(false);
 
-  useEffect(() => {
-    if (visible) {
-      setScanning(false);
-      setStatus(null);
-    }
-  }, [visible]);
+  if (visible && !wasVisible) {
+    setWasVisible(true);
+    setScanning(false);
+    setStatus(null);
+  } else if (!visible && wasVisible) {
+    setWasVisible(false);
+  }
 
   async function handleScanned(code: string) {
     if (scanning) return;

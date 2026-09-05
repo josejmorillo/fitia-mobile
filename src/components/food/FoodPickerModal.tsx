@@ -27,14 +27,20 @@ export function FoodPickerModal({
   const [query, setQuery] = useState('');
   const [foods, setFoods] = useState<Food[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [wasVisible, setWasVisible] = useState(false);
+
+  if (visible && !wasVisible) {
+    setWasVisible(true);
+    setQuery('');
+    setMode('foods');
+  } else if (!visible && wasVisible) {
+    setWasVisible(false);
+  }
 
   useEffect(() => {
-    if (visible) {
-      setQuery('');
-      setMode('foods');
-      getAllFoods().then(setFoods);
-      if (onSelectRecipe) getRecipes().then(setRecipes);
-    }
+    if (!visible) return;
+    getAllFoods().then(setFoods);
+    if (onSelectRecipe) getRecipes().then(setRecipes);
   }, [visible, onSelectRecipe]);
 
   const q = query.toLowerCase();

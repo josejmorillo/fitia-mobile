@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { colors } from '@/utils/colors';
@@ -12,12 +12,14 @@ interface AmountModalProps {
 
 export function AmountModal({ item, onClose, onSave }: AmountModalProps) {
   const [value, setValue] = useState('');
+  const [wasOpen, setWasOpen] = useState(false);
 
-  useEffect(() => {
-    if (item) {
-      setValue(String(item.amount));
-    }
-  }, [item]);
+  if (item && !wasOpen) {
+    setWasOpen(true);
+    setValue(String(item.amount));
+  } else if (!item && wasOpen) {
+    setWasOpen(false);
+  }
 
   function handleSave() {
     if (!item) return;

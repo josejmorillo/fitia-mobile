@@ -1,5 +1,5 @@
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -56,18 +56,20 @@ export function MeasurementModal({ visible, onClose, onSave }: MeasurementModalP
   const [thighs, setThighs] = useState('');
   const [biceps, setBiceps] = useState('');
   const [chest, setChest] = useState('');
+  const [wasVisible, setWasVisible] = useState(false);
 
-  useEffect(() => {
-    if (visible) {
-      setDate(todayString());
-      setWeight('');
-      setWaist('');
-      setHips('');
-      setThighs('');
-      setBiceps('');
-      setChest('');
-    }
-  }, [visible]);
+  if (visible && !wasVisible) {
+    setWasVisible(true);
+    setDate(todayString());
+    setWeight('');
+    setWaist('');
+    setHips('');
+    setThighs('');
+    setBiceps('');
+    setChest('');
+  } else if (!visible && wasVisible) {
+    setWasVisible(false);
+  }
 
   function openDatePicker() {
     DateTimePickerAndroid.open({
