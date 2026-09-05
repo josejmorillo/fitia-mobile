@@ -71,6 +71,12 @@ export default function SettingsScreen() {
   const [hasGroq, setHasGroq] = useState(false);
   const [hasMistral, setHasMistral] = useState(false);
   const [keysSaved, setKeysSaved] = useState(false);
+  const [savedGoals, setSavedGoals] = useState<{
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  } | null>(null);
 
   useEffect(() => {
     getOrCreateProfile().then((p) => {
@@ -80,6 +86,14 @@ export default function SettingsScreen() {
       if (p.gender) setGender(p.gender);
       if (p.calcGoalType) setGoalType(p.calcGoalType);
       if (p.calcActivityLevel) setActivity(p.calcActivityLevel);
+      if (p.goalCalories != null) {
+        setSavedGoals({
+          calories: p.goalCalories,
+          protein: p.goalProtein ?? 0,
+          carbs: p.goalCarbs ?? 0,
+          fat: p.goalFat ?? 0,
+        });
+      }
     });
     getApiKeys().then((k) => {
       setHasGroq(k.groq != null);
@@ -91,6 +105,21 @@ export default function SettingsScreen() {
     const n = parseFloat(s.replace(',', '.'));
     return isNaN(n) ? null : n;
   }
+
+  const wNum = parseNum(weight);
+  const hNum = parseNum(height);
+  const aNum = parseNum(age);
+  const estimate =
+    wNum != null && hNum != null && aNum != null
+      ? calculateGoals({
+          weight: wNum,
+          height: hNum,
+          age: aNum,
+          gender,
+          goalType,
+          activityLevel: activity,
+        })
+      : null;
 
   async function handleSave() {
     const w = parseNum(weight);
@@ -119,6 +148,12 @@ export default function SettingsScreen() {
       calcGoalType: goalType,
       calcActivityLevel: activity,
       calcSpeed: null,
+    });
+    setSavedGoals({
+      calories: goals.targetCalories,
+      protein: goals.protein,
+      carbs: goals.carbs,
+      fat: goals.fat,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -226,8 +261,87 @@ export default function SettingsScreen() {
         <Text style={styles.label}>Nivel de actividad</Text>
         <ChipGroup options={ACTIVITY_OPTIONS} value={activity} onChange={setActivity} />
 
+        {savedGoals && (
+          <View style={styles.goalsCard}>
+            <Text style={styles.goalsCardTitle}>Objetivos guardados</Text>
+            <Text style={styles.goalsHint}>Lo que tienes fijado ahora mismo (aparece en tu Plan).</Text>
+            <View style={styles.goalsRow}>
+              <View style={styles.goalBox}>
+                <Text style={styles.goalValue}>{savedGoals.calories}</Text>
+                <Text style={styles.goalLabel}>kcal</Text>
+              </View>
+              <View style={styles.goalBox}>
+                <Text style={[styles.goalValue, { color: colors.protein }]}>
+                  {savedGoals.protein}g
+                </Text>
+                <Text style={styles.goalLabel}>Proteína</Text>
+              </View>
+              <View style={styles.goalBox}>
+                <Text style={[styles.goalValue, { color: colors.carbs }]}>
+                  {savedGoals.carbs}g
+                </Text>
+                <Text style={styles.goalLabel}>Carbos</Text>
+              </View>
+              <View style={styles.goalBox}>
+                <Text style={[styles.goalValue, { color: colors.fat }]}>{savedGoals.fat}g</Text>
+                <Text style={styles.goalLabel}>Grasa</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {estimate && (
+          <View style={styles.goalsCard}>
+            <Text style={styles.goalsCardTitle}>Estimación con tus datos</Text>
+            <View style={styles.estimateGrid}>
+              <View style={styles.estimateCell}>
+                <Text style={styles.estimateLabel}>Metabolismo (BMR)</Text>
+                <Text style={styles.estimateValue}>{estimate.bmr} kcal</Text>
+              </View>
+              <View style={styles.estimateCell}>
+                <Text style={styles.estimateLabel}>Gasto diario (TDEE)</Text>
+                <Text style={styles.estimateValue}>{estimate.tdee} kcal</Text>
+              </View>
+              <View style={[styles.estimateCell, styles.estimateCellTarget]}>
+                <Text style={styles.estimateLabel}>Calorías objetivo</Text>
+                <Text style={styles.estimateTargetValue}>{estimate.targetCalories} kcal</Text>
+              </View>
+              <View style={styles.estimateCell}>
+                <Text style={styles.estimateLabel}>Proteína</Text>
+                <Text style={styles.estimateValue}>{estimate.protein} g</Text>
+              </View>
+              <View style={styles.estimateCell}>
+                <Text style={styles.estimateLabel}>Carbos</Text>
+                <Text style={styles.estimateValue}>{estimate.carbs} g</Text>
+              </View>
+              <View style={styles.estimateCell}>
+                <Text style={styles.estimateLabel}>Grasa</Text>
+                <Text style={styles.estimateValue}>{estimate.fat} g</Text>
+              </View>
+            </View>
+            {estimate.deficitSurplus !== 0 && (
+              <Text style={styles.estimateNote}>
+                {estimate.deficitSurplus < 0
+                  ? `Déficit de ${Math.abs(estimate.deficitSurplus)} kcal para definir`
+                  : `Superávit de ${estimate.deficitSurplus} kcal para volumen`}
+              </Text>
+            )}
+            {estimate.warnings.map((w) => (
+              <Text key={w} style={styles.estimateWarn}>
+                ⚠️ {w}
+              </Text>
+            ))}
+          </View>
+        )}
+
         <Pressable style={styles.saveBtn} onPress={handleSave}>
-          <Text style={styles.saveText}>{saved ? 'Guardado ✓' : 'Calcular y guardar objetivos'}</Text>
+          <Text style={styles.saveText}>
+            {saved
+              ? 'Guardado ✓'
+              : estimate
+                ? `Aplicar ${estimate.targetCalories} kcal y macros`
+                : 'Calcular y guardar objetivos'}
+          </Text>
         </Pressable>
 
         <Text style={styles.sectionTitle}>API de IA (opcional)</Text>
@@ -419,6 +533,84 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
+  },
+  goalsCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 14,
+    gap: 8,
+  },
+  goalsCardTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  goalsHint: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  goalsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  goalBox: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    gap: 2,
+  },
+  goalValue: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  goalLabel: {
+    fontSize: 10,
+    color: colors.textSecondary,
+  },
+  estimateGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  estimateCell: {
+    width: '48%',
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    padding: 10,
+    gap: 2,
+  },
+  estimateCellTarget: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.primary,
+  },
+  estimateLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  estimateValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  estimateTargetValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1A1A1A',
+  },
+  estimateNote: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  estimateWarn: {
+    fontSize: 12,
+    color: '#B26A00',
   },
   dataRow: {
     flexDirection: 'row',
