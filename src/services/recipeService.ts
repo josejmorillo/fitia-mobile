@@ -38,20 +38,33 @@ function mapIngredientFood(row: IngredientRow): Food {
 
 export async function getRecipes(): Promise<Recipe[]> {
   const db = await getDatabase();
-  const rows = await db.getAllAsync<{ id: number; name: string; emoji: string | null; cnt: number }>(
-    `SELECT r.id, r.name, r.emoji, COUNT(rf.id) AS cnt
+  const rows = await db.getAllAsync<{
+    id: number;
+    name: string;
+    emoji: string | null;
+    cnt: number;
+    servingGrams: number | null;
+    totalGrams: number | null;
+  }>(
+    `SELECT r.id, r.name, r.emoji, COUNT(rf.id) AS cnt,
+            r.serving_grams AS "servingGrams",
+            COALESCE(SUM(rf.amount), 0) AS "totalGrams"
      FROM recipes r
      LEFT JOIN recipe_foods rf ON rf.recipe_id = r.id
      GROUP BY r.id
      ORDER BY r.name COLLATE NOCASE`
   );
-  return rows.map((r) => ({
-    id: r.id,
-    name: r.name,
-    emoji: r.emoji ?? '🍽️',
-    ingredients: [],
-    ingredientCount: r.cnt,
-  }));
+  return rows
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      emoji: r.emoji ?? '🍽️',
+      ingredients: [],
+      ingredientCount: r.cnt,
+      servingGrams: r.servingGrams,
+      totalGrams: r.totalGrams ?? 0,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
 }
 
 export async function getRecipeIngredients(recipeId: number): Promise<RecipeIngredient[]> {
@@ -89,9 +102,16 @@ export async function getRecipeIngredients(recipeId: number): Promise<RecipeIngr
   }));
 }
 
-export async function createRecipe(name: string, emoji: string): Promise<number> {
+export async function createRecipe(
+  name: string,
+  emoji: string,
+  servingGrams: number | null = null
+): Promise<number> {
   const db = await getDatabase();
-  const result = await db.runAsync('INSERT INTO recipes (name, emoji) VALUES (?, ?)', [name, emoji]);
+  const result = await db.runAsync(
+    'INSERT INTO recipes (name, emoji, serving_grams) VALUES (?, ?, ?)',
+    [name, emoji, servingGrams]
+  );
   return result.lastInsertRowId;
 }
 
@@ -107,10 +127,16 @@ export async function addIngredient(recipeId: number, foodId: number, amount: nu
 export async function updateRecipe(
   recipeId: number,
   name: string,
-  emoji: string
+  emoji: string,
+  servingGrams: number | null = null
 ): Promise<void> {
   const db = await getDatabase();
-  await db.runAsync('UPDATE recipes SET name = ?, emoji = ? WHERE id = ?', [name, emoji, recipeId]);
+  await db.runAsync('UPDATE recipes SET name = ?, emoji = ?, serving_grams = ? WHERE id = ?', [
+    name,
+    emoji,
+    servingGrams,
+    recipeId,
+  ]);
 }
 
 export async function replaceRecipeIngredients(

@@ -4,6 +4,7 @@ import * as Sharing from 'expo-sharing';
 
 import {
   addItem,
+  addRecipeItem,
   getOrCreateDailyLog,
 } from './dailyLogService';
 import { createFood, type FoodInput } from './foodService';
@@ -52,7 +53,8 @@ export interface MeasurementPayload {
 
 export interface BackupDayItemPayload {
   mealType: MealType;
-  foodName: string;
+  foodName: string | null;
+  recipeName: string | null;
   amount: number;
   consumed: boolean;
   sortOrder: number;
@@ -358,11 +360,18 @@ async function importBackupEnvelope(data: BackupPayload): Promise<ImportSummary>
     }
     const log = await getOrCreateDailyLog(day.date);
     for (const item of day.items ?? []) {
-      if (!item || item.foodName == null) continue;
-      const foodId =
-        nameToId.get(String(item.foodName).toLowerCase()) ?? (await findFoodIdByName(item.foodName));
-      if (foodId == null) continue;
-      await addItem(log.id, item.mealType, foodId, item.amount ?? 0);
+      if (!item) continue;
+      if (item.foodName != null) {
+        const foodId =
+          nameToId.get(String(item.foodName).toLowerCase()) ??
+          (await findFoodIdByName(item.foodName));
+        if (foodId == null) continue;
+        await addItem(log.id, item.mealType, foodId, item.amount ?? 0);
+      } else if (item.recipeName != null) {
+        const recipeId = await findRecipeIdByName(item.recipeName);
+        if (recipeId == null) continue;
+        await addRecipeItem(log.id, item.mealType, recipeId, item.amount ?? 0);
+      }
     }
     daysRestored += 1;
   }

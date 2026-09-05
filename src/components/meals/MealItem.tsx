@@ -4,7 +4,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 
 import { colors } from '@/utils/colors';
-import { foodMacros } from '@/utils/macros';
 import type { DailyLogItem } from '@/utils/types';
 
 interface MealItemProps {
@@ -26,10 +25,14 @@ export function MealItem({
 }: MealItemProps) {
   const swipeableRef = useRef<Swipeable>(null);
   const food = item.food;
-  if (!food) return null;
+  const recipe = item.recipe;
+  if (!food && !recipe) return null;
 
-  const macros = foodMacros(food, item.amount);
+  const macros = item.macros ?? { calories: 0, protein: 0, carbs: 0, fat: 0 };
   const consumed = item.consumed;
+  const emoji = food?.emoji ?? recipe?.emoji ?? '🍽️';
+  const name = food?.name ?? recipe?.name ?? '';
+  const subtitle = food ? food.brand : recipe ? 'Receta' : null;
 
   return (
     <View style={styles.swipeWrapper}>
@@ -59,17 +62,17 @@ export function MealItem({
           </Pressable>
 
           <View style={styles.iconBox}>
-            <Text style={styles.emoji}>{food.emoji}</Text>
+            <Text style={styles.emoji}>{emoji}</Text>
           </View>
 
           <View style={styles.content}>
             <View style={styles.nameRow}>
               <Text style={styles.name} numberOfLines={1}>
-                {food.name}
+                {name}
               </Text>
-              {food.brand ? (
+              {subtitle ? (
                 <Text style={styles.brand} numberOfLines={1}>
-                  {food.brand}
+                  {subtitle}
                 </Text>
               ) : null}
             </View>
@@ -88,7 +91,7 @@ export function MealItem({
               <Text style={[styles.macro, { color: colors.fat }]}>{Math.round(macros.fat)}G</Text>
             </View>
             <View style={styles.actionButtons}>
-              {onEdit && (
+              {onEdit && food && (
                 <Pressable style={styles.editBtn} onPress={() => onEdit(food.id)} hitSlop={6}>
                   <Ionicons name="pencil-outline" size={15} color="#007AFF" />
                 </Pressable>

@@ -3,7 +3,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '@/utils/colors';
 import { MEAL_LABELS } from '@/utils/constants';
-import { foodMacros } from '@/utils/macros';
 import type { DailyLogItem, MealType } from '@/utils/types';
 import { MealItem } from './MealItem';
 
@@ -44,19 +43,17 @@ export function MealSection({
   onRepeat,
 }: MealSectionProps) {
   const mealItems = items.filter((i) => i.mealType === mealType);
-  const mealMacros = mealItems
-    .filter((i) => i.consumed && i.food)
-    .reduce(
-      (acc, i) => {
-        const m = foodMacros(i.food!, i.amount);
-        return {
-          protein: acc.protein + m.protein,
-          carbs: acc.carbs + m.carbs,
-          fat: acc.fat + m.fat,
-        };
-      },
-      { protein: 0, carbs: 0, fat: 0 }
-    );
+  const mealMacros = mealItems.filter((i) => i.consumed).reduce(
+    (acc, i) => {
+      const m = i.macros ?? { calories: 0, protein: 0, carbs: 0, fat: 0 };
+      return {
+        protein: acc.protein + m.protein,
+        carbs: acc.carbs + m.carbs,
+        fat: acc.fat + m.fat,
+      };
+    },
+    { protein: 0, carbs: 0, fat: 0 }
+  );
 
   const miniMacros: MiniMacro[] = [
     { key: 'P', value: mealMacros.protein, goal: goalProtein, color: colors.protein },

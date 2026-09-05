@@ -18,6 +18,7 @@ export default function EditRecipeScreen() {
   const [initial, setInitial] = useState<{
     name: string;
     emoji: string;
+    servingGrams: number | null;
     ingredients: RecipeIngredient[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,7 +28,16 @@ export default function EditRecipeScreen() {
       const recipes = await getRecipes();
       const found = recipes.find((r) => r.id === Number(id)) ?? null;
       const ingredients = await getRecipeIngredients(Number(id));
-      setInitial(found ? { name: found.name, emoji: found.emoji, ingredients } : null);
+      setInitial(
+        found
+          ? {
+              name: found.name,
+              emoji: found.emoji,
+              servingGrams: found.servingGrams,
+              ingredients,
+            }
+          : null
+      );
       setLoading(false);
     }
     load();
@@ -51,8 +61,8 @@ export default function EditRecipeScreen() {
       <RecipeForm
         initial={initial}
         submitLabel="Guardar cambios"
-        onSubmit={async ({ name, emoji, items }) => {
-          await updateRecipe(Number(id), name, emoji);
+        onSubmit={async ({ name, emoji, servingGrams, items }) => {
+          await updateRecipe(Number(id), name, emoji, servingGrams);
           await replaceRecipeIngredients(
             Number(id),
             items.map((i) => ({ foodId: i.food.id, amount: i.amount }))

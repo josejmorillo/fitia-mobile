@@ -10,22 +10,33 @@ interface AmountModalProps {
   onSave: (itemId: number, amount: number) => void;
 }
 
+type Unit = 'g' | 'raciones';
+
 export function AmountModal({ item, onClose, onSave }: AmountModalProps) {
+  const servingGrams = item?.recipe?.servingGrams ?? null;
   const [value, setValue] = useState('');
+  const [unit, setUnit] = useState<Unit>('g');
   const [wasOpen, setWasOpen] = useState(false);
 
   if (item && !wasOpen) {
     setWasOpen(true);
-    setValue(String(item.amount));
+    setUnit(servingGrams ? 'raciones' : 'g');
+    const initial = item.recipe && servingGrams ? item.amount / servingGrams : item.amount;
+    const rounded = Math.round(initial * 100) / 100;
+    setValue(Number.isInteger(rounded) ? String(rounded) : String(rounded));
   } else if (!item && wasOpen) {
     setWasOpen(false);
   }
 
+  const name = item?.food ? `${item.food.emoji} ${item.food.name}` : item?.recipe ? `${item.recipe.emoji} ${item.recipe.name}` : '';
+
   function handleSave() {
     if (!item) return;
-    const amount = parseFloat(value.replace(',', '.'));
-    if (isNaN(amount) || amount <= 0) return;
-    onSave(item.id, amount);
+    const parsed = parseFloat(value.replace(',', '.'));
+    if (isNaN(parsed) || parsed <= 0) return;
+    const grams = unit === 'raciones' && servingGrams ? parsed * servingGrams : parsed;
+    if (grams <= 0) return;
+    onSave(item.id, grams);
   }
 
   return (
@@ -33,11 +44,31 @@ export function AmountModal({ item, onClose, onSave }: AmountModalProps) {
       <View style={styles.backdrop}>
         <View style={styles.dialog}>
           <Text style={styles.title}>Cantidad</Text>
-          {item?.food && (
+          {name ? (
             <Text style={styles.foodName} numberOfLines={1}>
-              {item.food.emoji} {item.food.name}
+              {name}
             </Text>
-          )}
+          ) : null}
+
+          {servingGrams ? (
+            <View style={styles.segmented}>
+              <Pressable
+                style={[styles.segment, unit === 'raciones' && styles.segmentActive]}
+                onPress={() => setUnit('raciones')}>
+                <Text style={[styles.segmentText, unit === 'raciones' && styles.segmentTextActive]}>
+                  Raciones
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.segment, unit === 'g' && styles.segmentActive]}
+                onPress={() => setUnit('g')}>
+                <Text style={[styles.segmentText, unit === 'g' && styles.segmentTextActive]}>
+                  Gramos
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
+
           <TextInput
             style={styles.input}
             value={value}
@@ -46,6 +77,16 @@ export function AmountModal({ item, onClose, onSave }: AmountModalProps) {
             autoFocus
             selectTextOnFocus
           />
+          {unit === 'raciones' && servingGrams ? (
+            <Text style={styles.hint}>
+              {(() => {
+                const n = parseFloat(value.replace(',', '.'));
+                const q = isNaN(n) ? 0 : n;
+                return `Equivale a ${Math.round(q * servingGrams)} g`;
+              })()}
+            </Text>
+          ) : null}
+
           <View style={styles.actions}>
             <Pressable style={[styles.btn, styles.cancelBtn]} onPress={onClose}>
               <Text style={styles.cancelText}>Cancelar</Text>
@@ -85,6 +126,32 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 4,
   },
+  segmented: {
+    flexDirection: 'row',
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    padding: 3,
+    gap: 4,
+    marginTop: 14,
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  segmentActive: {
+    backgroundColor: colors.primary,
+  },
+  segmentText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  segmentTextActive: {
+    color: '#1A1A1A',
+    fontWeight: '700',
+  },
   input: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -93,8 +160,14 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 18,
     color: colors.text,
-    marginTop: 16,
+    marginTop: 14,
     textAlign: 'center',
+  },
+  hint: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 6,
   },
   actions: {
     flexDirection: 'row',

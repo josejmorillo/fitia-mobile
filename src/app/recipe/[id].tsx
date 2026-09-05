@@ -8,11 +8,6 @@ import {
   getRecipeIngredients,
   getRecipes,
 } from '@/services/recipeService';
-import {
-  buildRecipeEnvelope,
-  foodToPayload,
-  shareJson,
-} from '@/services/shareService';
 import { colors } from '@/utils/colors';
 import { foodMacros } from '@/utils/macros';
 import type { Recipe, RecipeIngredient } from '@/utils/types';
@@ -48,24 +43,6 @@ export default function RecipeDetailScreen() {
         },
       },
     ]);
-  }
-
-  async function handleShare() {
-    if (!recipe) return;
-    try {
-      await shareJson(
-        buildRecipeEnvelope({
-          name: recipe.name,
-          emoji: recipe.emoji,
-          ingredients: ingredients
-            .filter((i) => i.food)
-            .map((i) => ({ food: foodToPayload(i.food!), amount: i.amount })),
-        }),
-        'Compartir receta'
-      );
-    } catch {
-      Alert.alert('Error', 'No se pudo compartir la receta.');
-    }
   }
 
   if (loading) {
@@ -105,9 +82,6 @@ export default function RecipeDetailScreen() {
           title: 'Receta',
           headerRight: () => (
             <View style={styles.headerActions}>
-              <Pressable onPress={handleShare} hitSlop={8}>
-                <Ionicons name="share-outline" size={22} color={colors.primaryDark} />
-              </Pressable>
               <Pressable
                 onPress={() =>
                   router.push({ pathname: '/recipe/edit/[id]', params: { id: String(id) } })

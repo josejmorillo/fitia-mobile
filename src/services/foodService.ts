@@ -4,12 +4,16 @@ import { FOOD_SELECT, mapFoodRow, type FoodRow } from './mappers';
 
 export type FoodInput = Omit<Food, 'id' | 'createdAt'>;
 
+export function sortFoodsAlphabetically(foods: Food[]): Food[] {
+  return [...foods].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+}
+
 export async function getAllFoods(): Promise<Food[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<FoodRow>(
     `SELECT ${FOOD_SELECT} FROM foods ORDER BY name COLLATE NOCASE`
   );
-  return rows.map(mapFoodRow);
+  return sortFoodsAlphabetically(rows.map(mapFoodRow));
 }
 
 export async function searchFoods(query: string): Promise<Food[]> {
@@ -21,7 +25,7 @@ export async function searchFoods(query: string): Promise<Food[]> {
      ORDER BY name COLLATE NOCASE`,
     [like, like]
   );
-  return rows.map(mapFoodRow);
+  return sortFoodsAlphabetically(rows.map(mapFoodRow));
 }
 
 export async function getFood(id: number): Promise<Food | null> {

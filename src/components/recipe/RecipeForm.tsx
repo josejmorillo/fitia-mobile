@@ -16,16 +16,18 @@ import { EmojiPickerModal } from '@/components/common/EmojiPickerModal';
 import { FoodPickerModal } from '@/components/food/FoodPickerModal';
 import { FoodForm } from '@/components/food/FoodForm';
 import { colors } from '@/utils/colors';
+import { ingredientTotals } from '@/utils/macros';
 import type { Food, RecipeIngredient } from '@/utils/types';
 
 export interface RecipeFormValues {
   name: string;
   emoji: string;
+  servingGrams: number | null;
   items: { food: Food; amount: number }[];
 }
 
 interface RecipeFormProps {
-  initial?: { name: string; emoji: string; ingredients: RecipeIngredient[] } | null;
+  initial?: { name: string; emoji: string; servingGrams: number | null; ingredients: RecipeIngredient[] } | null;
   onSubmit: (values: RecipeFormValues) => Promise<void> | void;
   submitLabel: string;
 }
@@ -40,6 +42,9 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: RecipeFormProps) 
   const keySeq = useRef(0);
   const [name, setName] = useState(initial?.name ?? '');
   const [emoji, setEmoji] = useState(initial?.emoji ?? '🍽️');
+  const [servingGrams, setServingGrams] = useState(
+    initial?.servingGrams != null ? String(initial.servingGrams) : ''
+  );
   const [drafts, setDrafts] = useState<Draft[]>(() =>
     (initial?.ingredients ?? [])
       .map((ing, i) =>
@@ -100,10 +105,23 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: RecipeFormProps) 
       setError('Añade cantidades válidas (g).');
       return;
     }
+    const serving = parseFloat(servingGrams.replace(',', '.'));
     setSaving(true);
     setError(null);
-    await onSubmit({ name: name.trim(), emoji: emoji.trim() || '🍽️', items });
+    await onSubmit({
+      name: name.trim(),
+      emoji: emoji.trim() || '🍽️',
+      servingGrams: isNaN(serving) || serving <= 0 ? null : serving,
+      items,
+    });
   }
+
+  const totals = ingredientTotals(
+    drafts.map((d) => ({
+      food: d.food,
+      amount: parseFloat(d.amount.replace(',', '.')) || 0,
+    }))
+  );
 
   return (
     <>
@@ -131,7 +149,35 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: RecipeFormProps) 
           </Pressable>
         </View>
 
+        <View style={styles.field}>
+          <Text style={styles.label}>Ración (g) — opcional</Text>
+          <TextInput
+            style={styles.input}
+            value={servingGrams}
+            onChangeText={setServingGrams}
+            keyboardType="numeric"
+            placeholder="Ej. 180"
+            placeholderTextColor={colors.textTertiary}
+          />
+          <Text style={styles.help}>
+            Si lo rellenas, al añadir la receta podrás elegir entre raciones y gramos.
+          </Text>
+        </View>
+
         <Text style={styles.label}>Ingredientes</Text>
+        {drafts.length > 0 && (
+          <View style={styles.totalsCard}>
+            <Text style={styles.totalsMain}>{Math.round(totals.calories)} kcal</Text>
+            <Text style={styles.totalsMacros}>
+              P {totals.protein.toFixed(1)}g · C {totals.carbs.toFixed(1)}g · G{' '}
+              {totals.fat.toFixed(1)}g
+            </Text>
+            <Text style={styles.totalsWeight}>
+              {Math.round(totals.totalGrams)} g en total (1 ración ={' '}
+              {servingGrams.trim() ? `${servingGrams.trim()} g` : 'sin definir'})
+            </Text>
+          </View>
+        )}
         {drafts.length > 0 ? (
           <View style={styles.ingredientList}>
             {drafts.map((d) => (
@@ -230,6 +276,33 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: colors.textSecondary,
+  },
+  help: {
+    fontSize: 11,
+    color: colors.textTertiary,
+    marginTop: 4,
+  },
+  totalsCard: {
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 8,
+    gap: 2,
+  },
+  totalsMain: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1A1A1A',
+  },
+  totalsMacros: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  totalsWeight: {
+    fontSize: 11,
+    color: '#1A1A1A',
+    opacity: 0.8,
   },
   label: {
     fontSize: 13,

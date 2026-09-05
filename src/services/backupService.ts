@@ -45,15 +45,14 @@ export async function exportBackup(): Promise<void> {
     const items = await getDailyLogItems(log.id);
     days.push({
       date,
-      items: items
-        .filter((i) => i.food)
-        .map((i) => ({
-          mealType: i.mealType,
-          foodName: i.food!.name,
-          amount: i.amount,
-          consumed: i.consumed,
-          sortOrder: i.sortOrder,
-        })),
+      items: items.map((i) => ({
+        mealType: i.mealType,
+        foodName: i.food?.name ?? null,
+        recipeName: i.recipe?.name ?? null,
+        amount: i.amount,
+        consumed: i.consumed,
+        sortOrder: i.sortOrder,
+      })),
     });
   }
 

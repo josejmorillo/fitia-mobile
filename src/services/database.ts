@@ -1,7 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 
 const DB_NAME = 'fitia.db';
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2;
 
 const MIGRATIONS: Record<number, string> = {
   1: `
@@ -93,6 +93,9 @@ const MIGRATIONS: Record<number, string> = {
       calc_speed TEXT,
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+  `,
+  2: `
+    ALTER TABLE recipes ADD COLUMN serving_grams REAL;
   `,
 };
 

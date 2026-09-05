@@ -21,6 +21,8 @@ export interface Recipe {
   emoji: string;
   ingredients: RecipeIngredient[];
   ingredientCount?: number;
+  servingGrams: number | null;
+  totalGrams: number;
 }
 
 export interface RecipeIngredient {
@@ -49,6 +51,8 @@ export interface DailyLogItem {
   sourceItemId: number | null;
   food?: Food;
   recipe?: Recipe;
+  /** Macros calculados del ítem según su cantidad (alimento o receta). */
+  macros?: MacroSummary;
 }
 
 export interface MacroSummary {

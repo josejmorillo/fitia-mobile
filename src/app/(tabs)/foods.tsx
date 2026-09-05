@@ -1,11 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getAllFoods } from '@/services/foodService';
-import { getRecipes } from '@/services/recipeService';
+import { getRecipeIngredients, getRecipes } from '@/services/recipeService';
+import {
+  buildFoodEnvelope,
+  buildRecipeEnvelope,
+  foodToPayload,
+  shareJson,
+} from '@/services/shareService';
 import { colors } from '@/utils/colors';
 import type { Food, Recipe } from '@/utils/types';
 
@@ -31,6 +37,32 @@ export default function FoodsScreen() {
       f.name.toLowerCase().includes(q) ||
       (f.brand ?? '').toLowerCase().includes(q)
   );
+
+  async function shareFood(food: Food) {
+    try {
+      await shareJson(buildFoodEnvelope(foodToPayload(food)), 'Compartir alimento');
+    } catch {
+      Alert.alert('Error', 'No se pudo compartir el alimento.');
+    }
+  }
+
+  async function shareRecipe(recipe: Recipe) {
+    try {
+      const ingredients = await getRecipeIngredients(recipe.id);
+      await shareJson(
+        buildRecipeEnvelope({
+          name: recipe.name,
+          emoji: recipe.emoji,
+          ingredients: ingredients
+            .filter((i) => i.food)
+            .map((i) => ({ food: foodToPayload(i.food!), amount: i.amount })),
+        }),
+        'Compartir receta'
+      );
+    } catch {
+      Alert.alert('Error', 'No se pudo compartir la receta.');
+    }
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -82,6 +114,9 @@ export default function FoodsScreen() {
                     {item.fatPer100g} /100g
                   </Text>
                 </View>
+                <Pressable style={styles.shareBtn} onPress={() => shareFood(item)} hitSlop={8}>
+                  <Ionicons name="share-outline" size={18} color={colors.primaryDark} />
+                </Pressable>
                 <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
               </Pressable>
             )}
@@ -112,6 +147,9 @@ export default function FoodsScreen() {
                 </Text>
                 <Text style={styles.macros}>{item.ingredientCount ?? 0} ingredientes</Text>
               </View>
+              <Pressable style={styles.shareBtn} onPress={() => shareRecipe(item)} hitSlop={8}>
+                <Ionicons name="share-outline" size={18} color={colors.primaryDark} />
+              </Pressable>
               <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
             </Pressable>
           )}
@@ -194,6 +232,9 @@ const styles = StyleSheet.create({
   },
   emoji: {
     fontSize: 24,
+  },
+  shareBtn: {
+    padding: 4,
   },
   info: {
     flex: 1,

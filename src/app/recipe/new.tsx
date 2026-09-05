@@ -9,8 +9,8 @@ export default function NewRecipeScreen() {
   return (
     <RecipeForm
       submitLabel="Guardar receta"
-      onSubmit={async ({ name, emoji, items }) => {
-        const recipeId = await createRecipe(name, emoji);
+      onSubmit={async ({ name, emoji, servingGrams, items }) => {
+        const recipeId = await createRecipe(name, emoji, servingGrams);
         for (const item of items) {
           await addIngredient(recipeId, item.food.id, item.amount);
         }

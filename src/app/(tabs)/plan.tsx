@@ -10,8 +10,10 @@ import { MacroCircle } from '@/components/macros/MacroCircle';
 import { AmountModal } from '@/components/meals/AmountModal';
 import { MealSection } from '@/components/meals/MealSection';
 import { RepeatMealModal } from '@/components/meals/RepeatMealModal';
+import { RecipeAmountModal } from '@/components/meals/RecipeAmountModal';
 import {
   addItem,
+  addRecipeItem,
   copyItemToDate,
   deleteItem,
   getCaloriesByDateRange,
@@ -22,11 +24,10 @@ import {
   updateItemAmount,
 } from '@/services/dailyLogService';
 import { getOrCreateProfile } from '@/services/profileService';
-import { getRecipeIngredients } from '@/services/recipeService';
 import { colors } from '@/utils/colors';
 import { MEAL_TYPES } from '@/utils/constants';
 import { addDays, todayString } from '@/utils/dates';
-import { foodMacros, sumMacros } from '@/utils/macros';
+import { sumMacros } from '@/utils/macros';
 import type { DailyLogItem, Food, MealType, Recipe, UserProfile } from '@/utils/types';
 
 export default function PlanScreen() {
@@ -42,6 +43,7 @@ export default function PlanScreen() {
   const [amountItem, setAmountItem] = useState<DailyLogItem | null>(null);
   const [repeatMealType, setRepeatMealType] = useState<MealType | null>(null);
   const [repeating, setRepeating] = useState(false);
+  const [addRecipe, setAddRecipe] = useState<{ mealType: MealType; recipe: Recipe } | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -98,11 +100,15 @@ export default function PlanScreen() {
 
   async function handleSelectRecipe(recipe: Recipe) {
     if (logId == null || pickerMeal == null) return;
-    const ingredients = await getRecipeIngredients(recipe.id);
-    for (const ing of ingredients) {
-      await addItem(logId, pickerMeal, ing.foodId, ing.amount);
-    }
+    const mealType = pickerMeal;
     setPickerMeal(null);
+    setAddRecipe({ mealType, recipe });
+  }
+
+  async function handleAddRecipeGrams(grams: number) {
+    if (logId == null || addRecipe == null || grams <= 0) return;
+    await addRecipeItem(logId, addRecipe.mealType, addRecipe.recipe.id, grams);
+    setAddRecipe(null);
     await reload();
   }
 
@@ -155,9 +161,7 @@ export default function PlanScreen() {
 
   const consumedItems = items.filter((i) => i.consumed);
   const totalMacros = sumMacros(
-    consumedItems.map((i) =>
-      i.food ? foodMacros(i.food, i.amount) : { calories: 0, protein: 0, carbs: 0, fat: 0 }
-    )
+    consumedItems.map((i) => i.macros ?? { calories: 0, protein: 0, carbs: 0, fat: 0 })
   );
 
   const goalCalories = profile?.goalCalories ?? 0;
@@ -232,6 +236,11 @@ export default function PlanScreen() {
         loading={repeating}
         onClose={() => setRepeatMealType(null)}
         onRepeat={handleRepeat}
+      />
+      <RecipeAmountModal
+        recipe={addRecipe?.recipe ?? null}
+        onClose={() => setAddRecipe(null)}
+        onConfirm={handleAddRecipeGrams}
       />
     </SafeAreaView>
   );

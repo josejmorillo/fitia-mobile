@@ -13,8 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors } from '@/utils/colors';
 import {
-  EMOJI_CATALOG,
   EMOJI_CATEGORIES,
+  emojisByCategory,
   searchEmojis,
 } from '@/utils/emojiCatalog';
 
@@ -42,7 +42,7 @@ export function EmojiPickerModal({ visible, onClose, onPick }: EmojiPickerModalP
   const searching = query.trim().length > 0;
   const data = searching
     ? searchEmojis(query).map((e) => e.emoji)
-    : EMOJI_CATALOG.filter((e) => e.category === category).map((e) => e.emoji);
+    : emojisByCategory(category);
 
   function pick(emoji: string) {
     onPick(emoji);

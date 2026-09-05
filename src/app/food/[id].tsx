@@ -10,7 +10,6 @@ import {
   getFood,
   updateFood,
 } from '@/services/foodService';
-import { buildFoodEnvelope, foodToPayload, shareJson } from '@/services/shareService';
 import { colors } from '@/utils/colors';
 import type { Food } from '@/utils/types';
 
@@ -46,15 +45,6 @@ export default function EditFoodScreen() {
     ]);
   }
 
-  async function handleShare() {
-    if (!food) return;
-    try {
-      await shareJson(buildFoodEnvelope(foodToPayload(food)), 'Compartir alimento');
-    } catch {
-      Alert.alert('Error', 'No se pudo compartir el alimento.');
-    }
-  }
-
   if (loading) {
     return (
       <View style={styles.center}>
@@ -76,14 +66,9 @@ export default function EditFoodScreen() {
       <Stack.Screen
         options={{
           headerRight: () => (
-            <View style={styles.headerActions}>
-              <Pressable onPress={handleShare} hitSlop={8}>
-                <Ionicons name="share-outline" size={22} color={colors.primaryDark} />
-              </Pressable>
-              <Pressable onPress={handleDelete} hitSlop={8}>
-                <Ionicons name="trash-outline" size={22} color="#ff4d4d" />
-              </Pressable>
-            </View>
+            <Pressable onPress={handleDelete} hitSlop={8}>
+              <Ionicons name="trash-outline" size={22} color="#ff4d4d" />
+            </Pressable>
           ),
         }}
       />
@@ -100,11 +85,6 @@ export default function EditFoodScreen() {
 }
 
 const styles = StyleSheet.create({
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
   center: {
     flex: 1,
     alignItems: 'center',
