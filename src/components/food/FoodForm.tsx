@@ -15,6 +15,7 @@ import { FOOD_CATEGORIES } from '@/utils/constants';
 import type { Food, NutritionData } from '@/utils/types';
 import { AiFoodSearchModal } from './AiFoodSearchModal';
 import { BarcodeScannerModal } from './BarcodeScannerModal';
+import { EmojiPickerModal } from '../common/EmojiPickerModal';
 
 interface FoodFormProps {
   initial?: Food | null;
@@ -61,6 +62,7 @@ export function FoodForm({ initial, onSubmit, submitLabel }: FoodFormProps) {
   const [saving, setSaving] = useState(false);
   const [aiVisible, setAiVisible] = useState(false);
   const [barcodeVisible, setBarcodeVisible] = useState(false);
+  const [emojiVisible, setEmojiVisible] = useState(false);
 
   function applyNutritionData(data: NutritionData) {
     if (data.name) setName(data.name);
@@ -144,7 +146,11 @@ export function FoodForm({ initial, onSubmit, submitLabel }: FoodFormProps) {
 
       <View style={styles.field}>
         <Text style={styles.label}>Emoji</Text>
-        <TextInput style={styles.input} value={emoji} onChangeText={setEmoji} maxLength={4} />
+        <Pressable style={styles.emojiBtn} onPress={() => setEmojiVisible(true)}>
+          <Text style={styles.emojiValue}>{emoji || '🍽️'}</Text>
+          <Text style={styles.emojiHint}>Cambiar</Text>
+          <Ionicons name="chevron-down" size={14} color={colors.textSecondary} />
+        </Pressable>
       </View>
 
       <Text style={styles.label}>Categoría</Text>
@@ -193,6 +199,11 @@ export function FoodForm({ initial, onSubmit, submitLabel }: FoodFormProps) {
         onClose={() => setBarcodeVisible(false)}
         onApply={applyNutritionData}
       />
+      <EmojiPickerModal
+        visible={emojiVisible}
+        onClose={() => setEmojiVisible(false)}
+        onPick={setEmoji}
+      />
     </>
   );
 }
@@ -228,6 +239,25 @@ const styles = StyleSheet.create({
   },
   field: {
     marginBottom: 14,
+  },
+  emojiBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: colors.surface,
+  },
+  emojiValue: {
+    fontSize: 26,
+  },
+  emojiHint: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   label: {
     fontSize: 13,

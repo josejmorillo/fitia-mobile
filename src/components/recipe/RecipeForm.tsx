@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { createFood, getFood, type FoodInput } from '@/services/foodService';
+import { EmojiPickerModal } from '@/components/common/EmojiPickerModal';
 import { FoodPickerModal } from '@/components/food/FoodPickerModal';
 import { FoodForm } from '@/components/food/FoodForm';
 import { colors } from '@/utils/colors';
@@ -50,6 +51,7 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: RecipeFormProps) 
   );
   const [pickerVisible, setPickerVisible] = useState(false);
   const [createVisible, setCreateVisible] = useState(false);
+  const [emojiVisible, setEmojiVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -122,7 +124,11 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: RecipeFormProps) 
 
         <View style={styles.field}>
           <Text style={styles.label}>Emoji</Text>
-          <TextInput style={styles.input} value={emoji} onChangeText={setEmoji} maxLength={4} />
+          <Pressable style={styles.emojiBtn} onPress={() => setEmojiVisible(true)}>
+            <Text style={styles.emojiValue}>{emoji || '🍽️'}</Text>
+            <Text style={styles.emojiHint}>Cambiar</Text>
+            <Ionicons name="chevron-down" size={14} color={colors.textSecondary} />
+          </Pressable>
         </View>
 
         <Text style={styles.label}>Ingredientes</Text>
@@ -173,6 +179,12 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: RecipeFormProps) 
         onSelect={addFood}
       />
 
+      <EmojiPickerModal
+        visible={emojiVisible}
+        onClose={() => setEmojiVisible(false)}
+        onPick={setEmoji}
+      />
+
       <Modal visible={createVisible} animationType="slide" onRequestClose={() => setCreateVisible(false)}>
         <SafeAreaView style={styles.modalWrap} edges={['top', 'bottom']}>
           <View style={styles.modalHeader}>
@@ -199,6 +211,25 @@ const styles = StyleSheet.create({
   },
   field: {
     marginBottom: 14,
+  },
+  emojiBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: colors.surface,
+  },
+  emojiValue: {
+    fontSize: 26,
+  },
+  emojiHint: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   label: {
     fontSize: 13,
