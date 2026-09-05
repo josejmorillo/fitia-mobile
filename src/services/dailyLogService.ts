@@ -1,5 +1,6 @@
 import type { DailyLog, DailyLogItem, Food, MealType } from '../utils/types';
 import { getDatabase } from './database';
+import { addDays, parseDateString } from '../utils/dates';
 
 interface DailyLogItemRow {
   id: number;
@@ -178,4 +179,75 @@ export async function copyItemToDate(itemId: number, targetDate: string): Promis
      VALUES (?, ?, ?, ?, 0, COALESCE((SELECT MAX(sort_order) + 1 FROM daily_log_items WHERE daily_log_id = ? AND meal_type = ?), 0), ?)`,
     [targetLog.id, source.meal_type, source.food_id, source.amount, targetLog.id, source.meal_type, itemId]
   );
+}
+
+const DAY_OF_WEEK: Record<string, number> = {
+  SUNDAY: 0,
+  MONDAY: 1,
+  TUESDAY: 2,
+  WEDNESDAY: 3,
+  THURSDAY: 4,
+  FRIDAY: 5,
+  SATURDAY: 6,
+};
+
+export interface RepeatMealOptions {
+  sourceDate: string;
+  weeks: number;
+  selectedDays: string[];
+  mealType: MealType;
+}
+
+/**
+ * Copia los alimentos de una comida del día origen a los días de la semana
+ * elegidos durante las próximas `weeks` semanas. Los alimentos se añaden a lo
+ * que ya exista (merge) y llegan sin marcar (consumed = 0).
+ * Devuelve el número de días destino afectados.
+ */
+export async function repeatMeal(options: RepeatMealOptions): Promise<number> {
+  const db = await getDatabase();
+
+  const sourceItems = await db.getAllAsync<{ id: number; foodId: number | null; amount: number }>(
+    `SELECT dli.id, dli.food_id AS "foodId", dli.amount
+     FROM daily_log_items dli
+     JOIN daily_logs dl ON dl.id = dli.daily_log_id
+     WHERE dl.date = ? AND dli.meal_type = ?
+     ORDER BY dli.sort_order, dli.id`,
+    [options.sourceDate, options.mealType]
+  );
+  const items = sourceItems.filter((i) => i.foodId != null);
+  if (items.length === 0) return 0;
+
+  const targets = new Set<string>();
+  for (let w = 0; w < options.weeks; w++) {
+    const windowStart = addDays(options.sourceDate, w * 7 + 1);
+    const startDow = parseDateString(windowStart).getDay();
+    for (const day of options.selectedDays) {
+      const targetDow = DAY_OF_WEEK[day];
+      if (targetDow == null) continue;
+      const delta = (targetDow - startDow + 7) % 7;
+      targets.add(addDays(windowStart, delta));
+    }
+  }
+  if (targets.size === 0) return 0;
+
+  await db.withTransactionAsync(async () => {
+    for (const date of targets) {
+      await db.runAsync('INSERT OR IGNORE INTO daily_logs (date) VALUES (?)', [date]);
+      const log = await db.getFirstAsync<{ id: number }>(
+        'SELECT id FROM daily_logs WHERE date = ?',
+        [date]
+      );
+      if (!log) continue;
+      for (const item of items) {
+        await db.runAsync(
+          `INSERT INTO daily_log_items (daily_log_id, meal_type, food_id, amount, consumed, sort_order, source_item_id)
+           VALUES (?, ?, ?, ?, 0, COALESCE((SELECT MAX(sort_order) + 1 FROM daily_log_items WHERE daily_log_id = ? AND meal_type = ?), 0), ?)`,
+          [log.id, options.mealType, item.foodId, item.amount, log.id, options.mealType, item.id]
+        );
+      }
+    }
+  });
+
+  return targets.size;
 }

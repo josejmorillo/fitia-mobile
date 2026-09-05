@@ -9,6 +9,7 @@ import { MacroBar } from '@/components/macros/MacroBar';
 import { MacroCircle } from '@/components/macros/MacroCircle';
 import { AmountModal } from '@/components/meals/AmountModal';
 import { MealSection } from '@/components/meals/MealSection';
+import { RepeatMealModal } from '@/components/meals/RepeatMealModal';
 import {
   addItem,
   copyItemToDate,
@@ -16,6 +17,7 @@ import {
   getCaloriesByDateRange,
   getDailyLogItems,
   getOrCreateDailyLog,
+  repeatMeal,
   toggleItemConsumed,
   updateItemAmount,
 } from '@/services/dailyLogService';
@@ -38,6 +40,8 @@ export default function PlanScreen() {
   );
   const [pickerMeal, setPickerMeal] = useState<MealType | null>(null);
   const [amountItem, setAmountItem] = useState<DailyLogItem | null>(null);
+  const [repeatMealType, setRepeatMealType] = useState<MealType | null>(null);
+  const [repeating, setRepeating] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -126,6 +130,29 @@ export default function PlanScreen() {
     ToastAndroid.show('Alimento copiado al día siguiente', ToastAndroid.SHORT);
   }
 
+  async function handleRepeat(weeks: number, selectedDays: string[]) {
+    if (repeatMealType == null) return;
+    setRepeating(true);
+    try {
+      const affected = await repeatMeal({
+        sourceDate: selectedDate,
+        weeks,
+        selectedDays,
+        mealType: repeatMealType,
+      });
+      setRepeatMealType(null);
+      await reload();
+      ToastAndroid.show(
+        affected > 0
+          ? `Comida copiada a ${affected} ${affected === 1 ? 'día' : 'días'}`
+          : 'Esa comida no tiene alimentos todavía',
+        ToastAndroid.SHORT
+      );
+    } finally {
+      setRepeating(false);
+    }
+  }
+
   const consumedItems = items.filter((i) => i.consumed);
   const totalMacros = sumMacros(
     consumedItems.map((i) =>
@@ -183,6 +210,7 @@ export default function PlanScreen() {
               router.push({ pathname: '/food/[id]', params: { id: String(foodId) } })
             }
             onCopy={handleCopy}
+            onRepeat={setRepeatMealType}
           />
         ))}
       </ScrollView>
@@ -197,6 +225,13 @@ export default function PlanScreen() {
         item={amountItem}
         onClose={() => setAmountItem(null)}
         onSave={handleAmountSave}
+      />
+      <RepeatMealModal
+        visible={repeatMealType != null}
+        mealType={repeatMealType ?? 'breakfast'}
+        loading={repeating}
+        onClose={() => setRepeatMealType(null)}
+        onRepeat={handleRepeat}
       />
     </SafeAreaView>
   );

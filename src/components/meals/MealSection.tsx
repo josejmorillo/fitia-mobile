@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '@/utils/colors';
@@ -19,6 +19,7 @@ interface MealSectionProps {
   onAmountPress: (item: DailyLogItem) => void;
   onEdit?: (foodId: number) => void;
   onCopy?: (item: DailyLogItem) => void;
+  onRepeat?: (mealType: MealType) => void;
 }
 
 interface MiniMacro {
@@ -40,6 +41,7 @@ export function MealSection({
   onAmountPress,
   onEdit,
   onCopy,
+  onRepeat,
 }: MealSectionProps) {
   const mealItems = items.filter((i) => i.mealType === mealType);
   const mealMacros = mealItems
@@ -86,6 +88,11 @@ export function MealSection({
           })}
         </View>
 
+        {onRepeat && (
+          <Pressable style={styles.repeatBtn} onPress={() => onRepeat(mealType)} hitSlop={8}>
+            <MaterialIcons name="all-inclusive" size={22} color={colors.primaryDark} />
+          </Pressable>
+        )}
         <Pressable style={styles.addBtn} onPress={() => onAdd(mealType)} hitSlop={8}>
           <Ionicons name="add" size={22} color={colors.primaryDark} />
         </Pressable>
@@ -164,6 +171,9 @@ const styles = StyleSheet.create({
   addBtn: {
     padding: 2,
     marginLeft: 'auto',
+  },
+  repeatBtn: {
+    padding: 2,
   },
   emptyState: {
     padding: 14,
