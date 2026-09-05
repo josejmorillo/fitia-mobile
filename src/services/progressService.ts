@@ -23,6 +23,16 @@ export async function addMeasurement(input: MeasurementInput): Promise<void> {
   );
 }
 
+export async function updateMeasurement(id: number, input: MeasurementInput): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    `UPDATE body_measurements SET
+       date = ?, weight = ?, waist = ?, hips = ?, thighs = ?, biceps = ?, chest = ?
+     WHERE id = ?`,
+    [input.date, input.weight, input.waist, input.hips, input.thighs, input.biceps, input.chest, id]
+  );
+}
+
 export async function deleteMeasurement(id: number): Promise<void> {
   const db = await getDatabase();
   await db.runAsync('DELETE FROM body_measurements WHERE id = ?', [id]);

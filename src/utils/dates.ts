@@ -35,3 +35,14 @@ export function formatDateFull(dateString: string): string {
   const d = parseDateString(dateString);
   return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
+
+export function formatLogDate(dateString: string): string {
+  const d = parseDateString(dateString);
+  const s = d.toLocaleDateString('es-ES', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MeasurementModal } from '@/components/progress/MeasurementModal';
@@ -10,17 +10,19 @@ import {
   addMeasurement,
   deleteMeasurement,
   getMeasurements,
+  updateMeasurement,
 } from '@/services/progressService';
 import { colors } from '@/utils/colors';
-import { formatShortDate } from '@/utils/dates';
+import { formatLogDate } from '@/utils/dates';
 import type { BodyMeasurement } from '@/utils/types';
 
 type MetricKey = keyof Omit<BodyMeasurement, 'id' | 'date'>;
 type Selection = MetricKey | 'all';
+type MeasurementInput = Omit<BodyMeasurement, 'id'>;
 
 const METRICS: { key: MetricKey; label: string; unit: string; color: string; soft: string }[] = [
   { key: 'weight', label: 'Peso', unit: 'kg', color: '#2196F3', soft: '#E3F2FD' },
-  { key: 'chest', label: 'Pecho', unit: 'cm', color: '#FF9800', soft: '#FFF3E0' },
+  { key: 'chest', label: 'Pectoral', unit: 'cm', color: '#FF9800', soft: '#FFF3E0' },
   { key: 'waist', label: 'Cintura', unit: 'cm', color: '#4CAF50', soft: '#E8F5E9' },
   { key: 'hips', label: 'Cadera', unit: 'cm', color: '#9C27B0', soft: '#F3E5F5' },
   { key: 'biceps', label: 'Bíceps', unit: 'cm', color: '#F44336', soft: '#FFEBEE' },
@@ -30,6 +32,7 @@ const METRICS: { key: MetricKey; label: string; unit: string; color: string; sof
 export default function BodyScreen() {
   const [measurements, setMeasurements] = useState<BodyMeasurement[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
+  const [editing, setEditing] = useState<BodyMeasurement | null>(null);
   const [selected, setSelected] = useState<Selection>('weight');
 
   useFocusEffect(
@@ -38,14 +41,46 @@ export default function BodyScreen() {
     }, [])
   );
 
-  async function handleSave(input: Omit<BodyMeasurement, 'id'>) {
-    await addMeasurement(input);
+  function openNew() {
+    setEditing(null);
+    setModalVisible(true);
+  }
+
+  function openEdit(m: BodyMeasurement) {
+    setEditing(m);
+    setModalVisible(true);
+  }
+
+  async function reload() {
     setMeasurements(await getMeasurements());
   }
 
-  async function handleDelete(id: number) {
-    await deleteMeasurement(id);
-    setMeasurements(await getMeasurements());
+  async function handleSave(input: MeasurementInput) {
+    if (editing) {
+      await updateMeasurement(editing.id, input);
+    } else {
+      await addMeasurement(input);
+    }
+    setModalVisible(false);
+    await reload();
+  }
+
+  function handleDelete(m: BodyMeasurement) {
+    Alert.alert(
+      'Borrar medición',
+      `¿Seguro que quieres borrar la medición del ${formatLogDate(m.date)}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Borrar',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteMeasurement(m.id);
+            await reload();
+          },
+        },
+      ]
+    );
   }
 
   const availableMetrics = METRICS.filter(
@@ -128,31 +163,49 @@ export default function BodyScreen() {
           <Text style={styles.empty}>Aún no hay mediciones. Pulsa + para añadir la primera.</Text>
         ) : (
           list.map((m) => (
-            <View key={m.id} style={styles.row}>
-              <View style={styles.rowInfo}>
-                <Text style={styles.rowDate}>{formatShortDate(m.date)}</Text>
-                <Text style={styles.rowWeight}>{m.weight} kg</Text>
-                <Text style={styles.rowDetails}>
-                  {[m.chest, m.waist, m.hips, m.biceps, m.thighs]
-                    .filter((v) => v != null)
-                    .map((v) => `${v}cm`)
-                    .join(' · ')}
-                </Text>
+            <View key={m.id} style={styles.logCard}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardDate}>{formatLogDate(m.date)}</Text>
+                <View style={styles.cardActions}>
+                  <Pressable onPress={() => openEdit(m)} hitSlop={8}>
+                    <Ionicons name="pencil-outline" size={19} color="#007AFF" />
+                  </Pressable>
+                  <Pressable onPress={() => handleDelete(m)} hitSlop={8}>
+                    <Ionicons name="trash-outline" size={19} color="#ff4d4d" />
+                  </Pressable>
+                </View>
               </View>
-              <Pressable style={styles.deleteBtn} onPress={() => handleDelete(m.id)} hitSlop={8}>
-                <Ionicons name="trash-outline" size={18} color="#ff4d4d" />
-              </Pressable>
+
+              <View style={styles.weightRow}>
+                <Text style={styles.weightValue}>
+                  {m.weight != null ? `${m.weight} kg` : '—'}
+                </Text>
+                <Text style={styles.weightLabel}>Peso</Text>
+              </View>
+
+              {METRICS.filter((mm) => mm.key !== 'weight').map((mm) => {
+                const v = m[mm.key];
+                if (v == null) return null;
+                return (
+                  <View key={mm.key} style={styles.measureRow}>
+                    <View style={[styles.dot, { backgroundColor: mm.color }]} />
+                    <Text style={styles.measureLabel}>{mm.label}</Text>
+                    <Text style={styles.measureValue}>{v} cm</Text>
+                  </View>
+                );
+              })}
             </View>
           ))
         )}
       </ScrollView>
 
-      <Pressable style={styles.fab} onPress={() => setModalVisible(true)}>
+      <Pressable style={styles.fab} onPress={openNew}>
         <Ionicons name="add" size={28} color="#1A1A1A" />
       </Pressable>
 
       <MeasurementModal
         visible={modalVisible}
+        initial={editing}
         onClose={() => setModalVisible(false)}
         onSave={handleSave}
       />
@@ -211,34 +264,62 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingHorizontal: 24,
   },
-  row: {
+  logCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+    gap: 8,
+  },
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 8,
+    justifyContent: 'space-between',
   },
-  rowInfo: {
-    flex: 1,
-  },
-  rowDate: {
-    fontSize: 11,
+  cardDate: {
+    fontSize: 12,
+    fontWeight: '600',
     color: colors.textSecondary,
+    textTransform: 'capitalize',
   },
-  rowWeight: {
-    fontSize: 16,
-    fontWeight: '700',
+  cardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 18,
+  },
+  weightRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+  },
+  weightValue: {
+    fontSize: 26,
+    fontWeight: '800',
     color: colors.text,
   },
-  rowDetails: {
-    fontSize: 11,
-    color: colors.textTertiary,
-    marginTop: 2,
+  weightLabel: {
+    fontSize: 13,
+    color: colors.textSecondary,
   },
-  deleteBtn: {
-    padding: 4,
+  measureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  measureLabel: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  measureValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
   },
   fab: {
     position: 'absolute',

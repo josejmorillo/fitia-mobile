@@ -103,6 +103,7 @@ export async function getDailyLogItems(logId: number): Promise<DailyLogItem[]> {
          WHEN 'snacks' THEN 3
          ELSE 4
        END,
+       dli.consumed DESC,
        dli.sort_order,
        dli.id`,
     [logId]

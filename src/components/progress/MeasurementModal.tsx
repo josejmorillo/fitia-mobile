@@ -20,6 +20,7 @@ interface MeasurementModalProps {
   visible: boolean;
   onClose: () => void;
   onSave: (input: MeasurementInput) => void;
+  initial?: BodyMeasurement | null;
 }
 
 function Field({
@@ -48,7 +49,7 @@ function Field({
   );
 }
 
-export function MeasurementModal({ visible, onClose, onSave }: MeasurementModalProps) {
+export function MeasurementModal({ visible, onClose, onSave, initial }: MeasurementModalProps) {
   const [date, setDate] = useState(todayString());
   const [weight, setWeight] = useState('');
   const [waist, setWaist] = useState('');
@@ -60,13 +61,13 @@ export function MeasurementModal({ visible, onClose, onSave }: MeasurementModalP
 
   if (visible && !wasVisible) {
     setWasVisible(true);
-    setDate(todayString());
-    setWeight('');
-    setWaist('');
-    setHips('');
-    setThighs('');
-    setBiceps('');
-    setChest('');
+    setDate(initial?.date ?? todayString());
+    setWeight(initial?.weight != null ? String(initial.weight) : '');
+    setWaist(initial?.waist != null ? String(initial.waist) : '');
+    setHips(initial?.hips != null ? String(initial.hips) : '');
+    setThighs(initial?.thighs != null ? String(initial.thighs) : '');
+    setBiceps(initial?.biceps != null ? String(initial.biceps) : '');
+    setChest(initial?.chest != null ? String(initial.chest) : '');
   } else if (!visible && wasVisible) {
     setWasVisible(false);
   }
@@ -108,7 +109,7 @@ export function MeasurementModal({ visible, onClose, onSave }: MeasurementModalP
       <View style={styles.backdrop}>
         <View style={styles.dialog}>
           <View style={styles.header}>
-            <Text style={styles.title}>Nueva medición</Text>
+            <Text style={styles.title}>{initial ? 'Editar medición' : 'Nueva medición'}</Text>
             <Pressable onPress={onClose} hitSlop={8}>
               <Text style={styles.close}>✕</Text>
             </Pressable>
@@ -122,7 +123,7 @@ export function MeasurementModal({ visible, onClose, onSave }: MeasurementModalP
           <ScrollView keyboardShouldPersistTaps="handled">
             <View style={styles.row}>
               <Field label="Peso (kg) *" value={weight} onChange={setWeight} />
-              <Field label="Pecho (cm)" value={chest} onChange={setChest} />
+              <Field label="Pectoral (cm)" value={chest} onChange={setChest} />
             </View>
             <View style={styles.row}>
               <Field label="Cintura (cm)" value={waist} onChange={setWaist} />
@@ -139,7 +140,7 @@ export function MeasurementModal({ visible, onClose, onSave }: MeasurementModalP
               <Text style={styles.cancelText}>Cancelar</Text>
             </Pressable>
             <Pressable style={[styles.btn, styles.saveBtn]} onPress={handleSave}>
-              <Text style={styles.saveText}>Guardar</Text>
+              <Text style={styles.saveText}>{initial ? 'Guardar cambios' : 'Guardar'}</Text>
             </Pressable>
           </View>
         </View>
