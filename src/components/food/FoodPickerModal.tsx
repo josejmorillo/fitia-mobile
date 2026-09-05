@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -28,6 +28,11 @@ export function FoodPickerModal({
   const [foods, setFoods] = useState<Food[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [wasVisible, setWasVisible] = useState(false);
+  const onSelectRecipeRef = useRef(onSelectRecipe);
+
+  useEffect(() => {
+    onSelectRecipeRef.current = onSelectRecipe;
+  }, [onSelectRecipe]);
 
   if (visible && !wasVisible) {
     setWasVisible(true);
@@ -38,10 +43,10 @@ export function FoodPickerModal({
   }
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible || !wasVisible) return;
     getAllFoods().then(setFoods);
-    if (onSelectRecipe) getRecipes().then(setRecipes);
-  }, [visible, onSelectRecipe]);
+    if (onSelectRecipeRef.current) getRecipes().then(setRecipes);
+  }, [visible, wasVisible]);
 
   const q = query.toLowerCase();
   const filteredFoods = foods.filter(

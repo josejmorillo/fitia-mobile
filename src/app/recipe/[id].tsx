@@ -81,9 +81,18 @@ export default function RecipeDetailScreen() {
         options={{
           title: 'Receta',
           headerRight: () => (
-            <Pressable onPress={handleDelete} hitSlop={8}>
-              <Ionicons name="trash-outline" size={22} color="#ff4d4d" />
-            </Pressable>
+            <View style={styles.headerActions}>
+              <Pressable
+                onPress={() =>
+                  router.push({ pathname: '/recipe/edit/[id]', params: { id: String(id) } })
+                }
+                hitSlop={8}>
+                <Ionicons name="pencil-outline" size={22} color="#007AFF" />
+              </Pressable>
+              <Pressable onPress={handleDelete} hitSlop={8}>
+                <Ionicons name="trash-outline" size={22} color="#ff4d4d" />
+              </Pressable>
+            </View>
           ),
         }}
       />
@@ -133,6 +142,11 @@ const styles = StyleSheet.create({
   notFound: {
     color: colors.textSecondary,
     fontSize: 15,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
   },
   header: {
     flexDirection: 'row',
