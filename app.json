@@ -12,19 +12,40 @@
     },
     "android": {
       "package": "com.nutrifit.app",
+      "versionCode": 1,
       "intentFilters": [
         {
           "action": "SEND",
-          "category": ["DEFAULT"],
-          "data": [{ "mimeType": "application/json" }, { "mimeType": "application/octet-stream" }]
+          "category": [
+            "DEFAULT"
+          ],
+          "data": [
+            {
+              "mimeType": "application/json"
+            },
+            {
+              "mimeType": "application/octet-stream"
+            }
+          ]
         },
         {
           "action": "VIEW",
-          "category": ["DEFAULT"],
+          "category": [
+            "DEFAULT"
+          ],
           "data": [
-            { "scheme": "content", "mimeType": "application/json" },
-            { "scheme": "file", "mimeType": "application/json" },
-            { "scheme": "content", "mimeType": "application/octet-stream" }
+            {
+              "scheme": "content",
+              "mimeType": "application/json"
+            },
+            {
+              "scheme": "file",
+              "mimeType": "application/json"
+            },
+            {
+              "scheme": "content",
+              "mimeType": "application/octet-stream"
+            }
           ]
         }
       ],
@@ -56,6 +77,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3ad56168-5296-491c-bcc8-807ba4aa4f88"
+      }
+    },
+    "owner": "josejmorillo"
   }
 }
