@@ -1,7 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 
 const DB_NAME = 'fitia.db';
-const CURRENT_VERSION = 2;
+const CURRENT_VERSION = 3;
 
 const MIGRATIONS: Record<number, string> = {
   1: `
@@ -96,6 +96,13 @@ const MIGRATIONS: Record<number, string> = {
   `,
   2: `
     ALTER TABLE recipes ADD COLUMN serving_grams REAL;
+  `,
+  3: `
+    UPDATE foods SET category = 'Cereales y Legumbres' WHERE category = 'Cereales';
+    UPDATE foods SET category = 'Lácteos y Derivados' WHERE category = 'Lácteos';
+    UPDATE foods SET category = 'Panadería' WHERE category = 'Panes y masas';
+    UPDATE foods SET category = 'Verduras y Tubérculos' WHERE category = 'Verduras';
+    UPDATE foods SET category = 'Otros' WHERE category = 'Open Food Facts';
   `,
 };
 

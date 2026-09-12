@@ -6,7 +6,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { getOrCreateProfile, updateProfile } from '@/services/profileService';
 import { deleteApiKey, getApiKeys, saveApiKey } from '@/services/keys';
 import { exportBackup } from '@/services/backupService';
-import { importFromText, pickJsonFile } from '@/services/shareService';
+import {
+  importFromText,
+  isSqliteFileName,
+  pickImportFile,
+  readUriText,
+} from '@/services/shareService';
+import { importWebDatabase } from '@/services/webDbImport';
 import { colors } from '@/utils/colors';
 import { calculateGoals, type ActivityLevel, type GoalType, type Gender } from '@/utils/nutritionCalculator';
 
@@ -190,9 +196,11 @@ export default function SettingsScreen() {
 
   async function handleImportFile() {
     try {
-      const text = await pickJsonFile();
-      if (text == null) return;
-      const message = await importFromText(text);
+      const picked = await pickImportFile();
+      if (picked == null) return;
+      const message = isSqliteFileName(picked.name)
+        ? await importWebDatabase(picked.uri)
+        : await importFromText(await readUriText(picked.uri));
       Alert.alert('Importación completada', message);
     } catch (e) {
       Alert.alert(
@@ -407,9 +415,9 @@ export default function SettingsScreen() {
         <Text style={styles.sectionTitle}>Datos y copias de seguridad</Text>
         <Text style={styles.hint}>
           Exporta tu base de datos (alimentos, recetas, diario, mediciones y perfil) a un archivo
-          JSON para hacer una copia manual o pasarla a otro dispositivo. También puedes importar un
-          alimento o receta que te hayan compartido: toca el archivo .json y elige NutriFit, o usa
-          el botón Importar.
+          JSON para hacer una copia manual o pasarla a otro dispositivo. Importar acepta archivos
+          JSON de NutriFit (alimento, receta o copia completa) y también la base de datos (.db) de
+          la versión web, de la que se importan alimentos y recetas.
         </Text>
 
         <View style={styles.dataRow}>

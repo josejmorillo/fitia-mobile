@@ -28,6 +28,8 @@ export interface FoodPayload {
   proteinPer100g: number;
   carbsPer100g: number;
   fatPer100g: number;
+  servingName?: string | null;
+  servingAmount?: number | null;
 }
 
 export interface RecipeIngredientPayload {
@@ -168,14 +170,30 @@ export async function readUriText(uri: string): Promise<string> {
   }
 }
 
-export async function pickJsonFile(): Promise<string | null> {
+export interface PickedFile {
+  uri: string;
+  name: string;
+}
+
+export async function pickImportFile(): Promise<PickedFile | null> {
   const result = await DocumentPicker.getDocumentAsync({
-    type: ['application/json', 'text/plain', '*/*'],
+    type: [
+      'application/json',
+      'text/plain',
+      'application/octet-stream',
+      'application/x-sqlite3',
+      '*/*',
+    ],
     copyToCacheDirectory: true,
     multiple: false,
   });
   if (result.canceled || result.assets.length === 0) return null;
-  return readUriText(result.assets[0].uri);
+  const asset = result.assets[0];
+  return { uri: asset.uri, name: asset.name ?? '' };
+}
+
+export function isSqliteFileName(name: string): boolean {
+  return /\.(db|sqlite|sqlite3)$/i.test(name);
 }
 
 /* ────────────────────────────────────────────────────────────────────
@@ -241,8 +259,8 @@ async function ensureFood(payload: FoodPayload): Promise<number> {
     proteinPer100g: payload.proteinPer100g,
     carbsPer100g: payload.carbsPer100g,
     fatPer100g: payload.fatPer100g,
-    servingName: null,
-    servingAmount: null,
+    servingName: payload.servingName ?? null,
+    servingAmount: payload.servingAmount ?? null,
   };
   return createFood(input);
 }
@@ -300,7 +318,7 @@ async function importRecipeEnvelope(data: RecipePayload): Promise<ImportSummary>
   return { kind: 'recipe', label: 'Receta', created: 1, skipped: 0, detail: data.name };
 }
 
-async function importBackupEnvelope(data: BackupPayload): Promise<ImportSummary> {
+export async function importBackupEnvelope(data: BackupPayload): Promise<ImportSummary> {
   const summary: ImportSummary = {
     kind: 'backup',
     label: 'Copia de seguridad',

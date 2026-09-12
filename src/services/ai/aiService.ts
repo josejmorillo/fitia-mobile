@@ -19,8 +19,9 @@ const SYSTEM_PROMPT =
   'No markdown, no code fences, no explanation, no preamble. ' +
   'If a value is unknown, use null. Never invent values you are not confident about — use null instead. ' +
   'For "category" pick the single best match from this fixed list (use exact string or null): ' +
-  'Aperitivos, Bebidas, Carnes, Cereales, Condimentos, Embutidos, Frutas, Grasas, Huevos, Legumbres, ' +
-  'Lácteos, Mariscos, Otros, Panes y masas, Pescados, Postres, Precocinados, Salsas, Snacks, Verduras. ' +
+  'Aperitivos, Bebidas, Carnes, Cereales y Legumbres, Condimentos, Embutidos, Frutas, Frutos Secos, Grasas, ' +
+  'Huevos, Legumbres, Lácteos y Derivados, Mariscos, Otros, Panadería, Pescados, Postres, Precocinados, ' +
+  'Salsas, Snacks, Verduras y Tubérculos. ' +
   'For "serving_name" use the most common serving unit name in Spanish (e.g. "lata", "rebanada", "unidad"), or null. ' +
   'For "serving_amount_g" use the weight in grams of that one serving unit, or null. ' +
   'For "emoji" use a single emoji that best represents the food. ' +
