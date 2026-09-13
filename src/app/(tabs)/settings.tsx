@@ -199,6 +199,7 @@ export default function SettingsScreen() {
     try {
       const picked = await pickImportFile();
       if (picked == null) return;
+      console.log('[import] archivo elegido:', picked.name, picked.uri.slice(0, 60));
       if (isSqliteFileName(picked.name)) {
         const message = await importWebDatabase(picked.uri);
         Alert.alert('Importación completada', message);
@@ -216,6 +217,7 @@ export default function SettingsScreen() {
       const message = await importFromText(text);
       Alert.alert('Importación completada', message);
     } catch (e) {
+      console.error('[import] error importando base de datos:', e);
       Alert.alert(
         'No se pudo importar',
         e instanceof Error ? e.message : 'El archivo no es válido.'
@@ -227,6 +229,7 @@ export default function SettingsScreen() {
     try {
       const picked = await pickImportFile();
       if (picked == null) return;
+      console.log('[import] archivo elegido:', picked.name, picked.uri.slice(0, 60));
       if (isSqliteFileName(picked.name)) {
         Alert.alert(
           'No se pudo importar',
@@ -246,6 +249,7 @@ export default function SettingsScreen() {
       const message = await importFromText(text);
       Alert.alert('Importación completada', message);
     } catch (e) {
+      console.error('[import] error importando alimento/receta:', e);
       Alert.alert(
         'No se pudo importar',
         e instanceof Error ? e.message : 'El archivo no es válido.'

@@ -161,8 +161,13 @@ export async function shareJson(envelope: ImportEnvelope, dialogTitle: string): 
  * ──────────────────────────────────────────────────────────────────── */
 
 export async function readUriText(uri: string): Promise<string> {
-  const legacy = await import('expo-file-system/legacy');
-  return legacy.readAsStringAsync(uri);
+  try {
+    const response = await fetch(uri);
+    return await response.text();
+  } catch {
+    const legacy = await import('expo-file-system/legacy');
+    return legacy.readAsStringAsync(uri);
+  }
 }
 
 export interface PickedFile {

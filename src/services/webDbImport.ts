@@ -96,13 +96,49 @@ function base64ToUint8Array(base64: string): Uint8Array {
   return new Uint8Array(bytes);
 }
 
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  let out = '';
+  for (let i = 0; i < bytes.length; i += 3) {
+    const b0 = bytes[i];
+    const b1 = i + 1 < bytes.length ? bytes[i + 1] : 0;
+    const b2 = i + 2 < bytes.length ? bytes[i + 2] : 0;
+    out += BASE64_ALPHABET[b0 >> 2];
+    out += BASE64_ALPHABET[((b0 & 3) << 4) | (b1 >> 4)];
+    out += i + 1 < bytes.length ? BASE64_ALPHABET[((b1 & 15) << 2) | (b2 >> 6)] : '=';
+    out += i + 2 < bytes.length ? BASE64_ALPHABET[b2 & 63] : '=';
+  }
+  return out;
+}
+
+/**
+ * Lee los bytes de la URI elegida. `fetch` de React Native soporta tanto
+ * `content://` (ContentResolver) como `file://`; expo-file-system no.
+ */
+async function readUriBytes(uri: string): Promise<Uint8Array> {
+  try {
+    const response = await fetch(uri);
+    const buffer = await response.arrayBuffer();
+    if (buffer.byteLength === 0) throw new Error('respuesta vacía');
+    return new Uint8Array(buffer);
+  } catch (fetchError) {
+    try {
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      return base64ToUint8Array(base64);
+    } catch (legacyError) {
+      const a = fetchError instanceof Error ? fetchError.message : String(fetchError);
+      const b = legacyError instanceof Error ? legacyError.message : String(legacyError);
+      throw new Error(`No se pudo leer el archivo (${a} · legacy: ${b})`);
+    }
+  }
+}
+
 async function openWebDatabase(uri: string): Promise<OpenResult> {
-  const base64 = await FileSystem.readAsStringAsync(uri, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
+  const bytes = await readUriBytes(uri);
 
   try {
-    const db = await SQLite.deserializeDatabaseAsync(base64ToUint8Array(base64));
+    const db = await SQLite.deserializeDatabaseAsync(bytes);
     return { db, tempFile: null };
   } catch (deserializeError) {
     try {
@@ -110,7 +146,7 @@ async function openWebDatabase(uri: string): Promise<OpenResult> {
       if (!dir) throw new Error('directorio de documentos no disponible');
       const fileName = `import-web-${Date.now()}.sqlite`;
       const dest = `${dir}${fileName}`;
-      await FileSystem.writeAsStringAsync(dest, base64, {
+      await FileSystem.writeAsStringAsync(dest, uint8ArrayToBase64(bytes), {
         encoding: FileSystem.EncodingType.Base64,
       });
       const db = await SQLite.openDatabaseAsync(fileName, {}, dir);
