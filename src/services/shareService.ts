@@ -160,10 +160,29 @@ export async function shareJson(envelope: ImportEnvelope, dialogTitle: string): 
  * Lectura de archivos (document picker e intent recibido)
  * ──────────────────────────────────────────────────────────────────── */
 
+const BASE64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+function base64ToUint8Array(base64: string): Uint8Array {
+  const clean = base64.replace(/[^A-Za-z0-9+/]/g, '');
+  const bytes: number[] = [];
+  let buffer = 0;
+  let bits = 0;
+  for (const ch of clean) {
+    const value = BASE64_ALPHABET.indexOf(ch);
+    if (value < 0) continue;
+    buffer = (buffer << 6) | value;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      bytes.push((buffer >> bits) & 0xff);
+    }
+  }
+  return new Uint8Array(bytes);
+}
+
 /**
- * Lee la URI elegida como Blob. `fetch(uri).blob()` hace que React Native use su
- * BlobModule (responseType "blob"), que sí soporta `content://` y `file://` vía
- * ContentResolver; `.arrayBuffer()`/`.text()` no lo hacen.
+ * Lee la URI elegida como Blob (fallback). `fetch(uri).blob()` fuerza el
+ * responseType "blob" de React Native, que soporta `content://` y `file://`.
  */
 async function readUriBlob(uri: string): Promise<Blob> {
   const response = await fetch(uri);
@@ -189,14 +208,47 @@ function readBlobAsText(blob: Blob): Promise<string> {
 }
 
 export async function readUriAsUint8Array(uri: string): Promise<Uint8Array> {
-  const blob = await readUriBlob(uri);
-  const buffer = await readBlobAsArrayBuffer(blob);
-  return new Uint8Array(buffer);
+  // 1) File API: para `content://` el chequeo de permisos siempre pasa y lee
+  //    vía ContentResolver (funciona en Expo Go y en APK).
+  try {
+    const file = new File(uri);
+    const buffer = await file.arrayBuffer();
+    if (buffer.byteLength > 0) return new Uint8Array(buffer);
+  } catch {
+    // continúa con los fallbacks
+  }
+  // 2) Blob
+  try {
+    const blob = await readUriBlob(uri);
+    const buffer = await readBlobAsArrayBuffer(blob);
+    if (buffer.byteLength > 0) return new Uint8Array(buffer);
+  } catch {
+    // continúa
+  }
+  // 3) Legacy base64
+  const legacy = await import('expo-file-system/legacy');
+  const base64 = await legacy.readAsStringAsync(uri, {
+    encoding: legacy.EncodingType.Base64,
+  });
+  return base64ToUint8Array(base64);
 }
 
 export async function readUriAsText(uri: string): Promise<string> {
-  const blob = await readUriBlob(uri);
-  return readBlobAsText(blob);
+  try {
+    const file = new File(uri);
+    const text = await file.text();
+    if (typeof text === 'string') return text;
+  } catch {
+    // continúa con los fallbacks
+  }
+  try {
+    const blob = await readUriBlob(uri);
+    return await readBlobAsText(blob);
+  } catch {
+    // continúa
+  }
+  const legacy = await import('expo-file-system/legacy');
+  return legacy.readAsStringAsync(uri);
 }
 
 export async function readUriText(uri: string): Promise<string> {
