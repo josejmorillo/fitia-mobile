@@ -161,13 +161,8 @@ export async function shareJson(envelope: ImportEnvelope, dialogTitle: string): 
  * ──────────────────────────────────────────────────────────────────── */
 
 export async function readUriText(uri: string): Promise<string> {
-  try {
-    const file = new File(uri);
-    return file.text();
-  } catch {
-    const legacy = await import('expo-file-system/legacy');
-    return legacy.readAsStringAsync(uri);
-  }
+  const legacy = await import('expo-file-system/legacy');
+  return legacy.readAsStringAsync(uri);
 }
 
 export interface PickedFile {
@@ -184,7 +179,7 @@ export async function pickImportFile(): Promise<PickedFile | null> {
       'application/x-sqlite3',
       '*/*',
     ],
-    copyToCacheDirectory: true,
+    copyToCacheDirectory: false,
     multiple: false,
   });
   if (result.canceled || result.assets.length === 0) return null;
