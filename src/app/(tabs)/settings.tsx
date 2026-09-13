@@ -9,6 +9,7 @@ import { exportBackup } from '@/services/backupService';
 import {
   importFromText,
   isSqliteFileName,
+  parseImportJson,
   pickImportFile,
   readUriText,
 } from '@/services/shareService';
@@ -194,13 +195,55 @@ export default function SettingsScreen() {
     }
   }
 
-  async function handleImportFile() {
+  async function handleImportDatabase() {
     try {
       const picked = await pickImportFile();
       if (picked == null) return;
-      const message = isSqliteFileName(picked.name)
-        ? await importWebDatabase(picked.uri)
-        : await importFromText(await readUriText(picked.uri));
+      if (isSqliteFileName(picked.name)) {
+        const message = await importWebDatabase(picked.uri);
+        Alert.alert('Importación completada', message);
+        return;
+      }
+      const text = await readUriText(picked.uri);
+      const envelope = parseImportJson(text);
+      if (envelope.kind !== 'backup') {
+        Alert.alert(
+          'No se pudo importar',
+          'Ese archivo es un alimento o receta. Usa "Importar alimento o receta".'
+        );
+        return;
+      }
+      const message = await importFromText(text);
+      Alert.alert('Importación completada', message);
+    } catch (e) {
+      Alert.alert(
+        'No se pudo importar',
+        e instanceof Error ? e.message : 'El archivo no es válido.'
+      );
+    }
+  }
+
+  async function handleImportFoodRecipe() {
+    try {
+      const picked = await pickImportFile();
+      if (picked == null) return;
+      if (isSqliteFileName(picked.name)) {
+        Alert.alert(
+          'No se pudo importar',
+          'Ese archivo es una base de datos. Usa "Importar base de datos".'
+        );
+        return;
+      }
+      const text = await readUriText(picked.uri);
+      const envelope = parseImportJson(text);
+      if (envelope.kind === 'backup') {
+        Alert.alert(
+          'No se pudo importar',
+          'Ese archivo es una copia completa. Usa "Importar base de datos".'
+        );
+        return;
+      }
+      const message = await importFromText(text);
       Alert.alert('Importación completada', message);
     } catch (e) {
       Alert.alert(
@@ -414,22 +457,30 @@ export default function SettingsScreen() {
 
         <Text style={styles.sectionTitle}>Datos y copias de seguridad</Text>
         <Text style={styles.hint}>
-          Exporta tu base de datos (alimentos, recetas, diario, mediciones y perfil) a un archivo
-          JSON para hacer una copia manual o pasarla a otro dispositivo. Importar acepta archivos
-          JSON de NutriFit (alimento, receta o copia completa) y también la base de datos (.db) de
-          la versión web, de la que se importan alimentos y recetas.
+          Copia de seguridad completa (alimentos, recetas, diario, mediciones y perfil) o
+          importación de alimentos y recetas sueltos. La copia completa acepta también la base de
+          datos (.db) de la versión web, de la que se importan alimentos y recetas.
         </Text>
 
+        <Text style={styles.subSectionTitle}>Copia de seguridad (base de datos)</Text>
         <View style={styles.dataRow}>
           <Pressable style={[styles.dataBtn, styles.dataBtnPrimary]} onPress={handleExportBackup}>
             <Ionicons name="share-outline" size={18} color="#1A1A1A" />
             <Text style={styles.dataBtnText}>Exportar base de datos</Text>
           </Pressable>
-          <Pressable style={[styles.dataBtn, styles.dataBtnGhost]} onPress={handleImportFile}>
+          <Pressable style={[styles.dataBtn, styles.dataBtnGhost]} onPress={handleImportDatabase}>
             <Ionicons name="download-outline" size={18} color={colors.primaryDark} />
-            <Text style={styles.dataBtnGhostText}>Importar archivo</Text>
+            <Text style={styles.dataBtnGhostText}>Importar base de datos</Text>
           </Pressable>
         </View>
+
+        <Text style={styles.subSectionTitle}>Alimentos y recetas</Text>
+        <Pressable
+          style={[styles.dataBtn, styles.dataBtnGhost, styles.dataBtnFull]}
+          onPress={handleImportFoodRecipe}>
+          <Ionicons name="download-outline" size={18} color={colors.primaryDark} />
+          <Text style={styles.dataBtnGhostText}>Importar alimento o receta</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -625,6 +676,13 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 4,
   },
+  subSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    marginTop: 14,
+    marginBottom: 6,
+  },
   dataBtn: {
     flex: 1,
     flexDirection: 'row',
@@ -633,6 +691,9 @@ const styles = StyleSheet.create({
     gap: 6,
     borderRadius: 10,
     paddingVertical: 12,
+  },
+  dataBtnFull: {
+    marginTop: 4,
   },
   dataBtnPrimary: {
     backgroundColor: colors.primary,

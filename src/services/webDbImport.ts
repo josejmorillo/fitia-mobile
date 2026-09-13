@@ -1,4 +1,5 @@
-import { File, Paths } from 'expo-file-system';
+import { File } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as SQLite from 'expo-sqlite';
 
 import { FOOD_CATEGORIES } from '../utils/constants';
@@ -71,27 +72,39 @@ function toFoodPayload(row: WebFoodRow): FoodPayload {
   };
 }
 
-async function openWebDatabase(uri: string): Promise<SQLite.SQLiteDatabase> {
+interface OpenResult {
+  db: SQLite.SQLiteDatabase;
+  tempFile: string | null;
+}
+
+async function openWebDatabase(uri: string): Promise<OpenResult> {
+  let deserializeError: unknown = null;
+
   try {
     const buffer = await new File(uri).arrayBuffer();
-    return await SQLite.deserializeDatabaseAsync(new Uint8Array(buffer));
-  } catch {
-    const legacy = await import('expo-file-system/legacy');
-    const fileName = 'import-web-db.sqlite';
-    const dest = new File(Paths.cache, fileName);
-    if (dest.exists) dest.delete();
-    await legacy.copyAsync({ from: uri, to: dest.uri });
-    return await SQLite.openDatabaseAsync(fileName, {}, Paths.cache.uri);
+    const db = await SQLite.deserializeDatabaseAsync(new Uint8Array(buffer));
+    return { db, tempFile: null };
+  } catch (err) {
+    deserializeError = err;
+  }
+
+  try {
+    const dir = FileSystem.documentDirectory;
+    if (!dir) throw new Error('directorio de documentos no disponible');
+    const fileName = `import-web-${Date.now()}.sqlite`;
+    const dest = `${dir}${fileName}`;
+    await FileSystem.copyAsync({ from: uri, to: dest });
+    const db = await SQLite.openDatabaseAsync(fileName, {}, dir);
+    return { db, tempFile: dest };
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    const first = deserializeError instanceof Error ? deserializeError.message : String(deserializeError);
+    throw new Error(`No se pudo abrir la base de datos (${detail} · deserialize: ${first})`);
   }
 }
 
 export async function importWebDatabase(uri: string): Promise<string> {
-  let db: SQLite.SQLiteDatabase;
-  try {
-    db = await openWebDatabase(uri);
-  } catch {
-    throw new Error('No se pudo abrir el archivo. ¿Seguro que es una base de datos válida?');
-  }
+  const { db, tempFile } = await openWebDatabase(uri);
 
   try {
     let foods: WebFoodRow[];
@@ -155,5 +168,10 @@ export async function importWebDatabase(uri: string): Promise<string> {
     return `✅ Importación completada: ${newOnes} alimento(s)/receta(s) nuevos, ${existing} ya existían (se omiten).`;
   } finally {
     await db.closeAsync();
+    if (tempFile) {
+      await FileSystem.deleteAsync(tempFile, { idempotent: true }).catch(() => {});
+      await FileSystem.deleteAsync(`${tempFile}-wal`, { idempotent: true }).catch(() => {});
+      await FileSystem.deleteAsync(`${tempFile}-shm`, { idempotent: true }).catch(() => {});
+    }
   }
 }
