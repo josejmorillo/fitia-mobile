@@ -4,6 +4,7 @@ import * as SQLite from 'expo-sqlite';
 import { FOOD_CATEGORIES } from '../utils/constants';
 import {
   importBackupEnvelope,
+  readUriAsUint8Array,
   type BackupPayload,
   type FoodPayload,
   type RecipeIngredientPayload,
@@ -78,24 +79,6 @@ interface OpenResult {
 
 const BASE64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
-function base64ToUint8Array(base64: string): Uint8Array {
-  const clean = base64.replace(/[^A-Za-z0-9+/]/g, '');
-  const bytes: number[] = [];
-  let buffer = 0;
-  let bits = 0;
-  for (const ch of clean) {
-    const value = BASE64_ALPHABET.indexOf(ch);
-    if (value < 0) continue;
-    buffer = (buffer << 6) | value;
-    bits += 6;
-    if (bits >= 8) {
-      bits -= 8;
-      bytes.push((buffer >> bits) & 0xff);
-    }
-  }
-  return new Uint8Array(bytes);
-}
-
 function uint8ArrayToBase64(bytes: Uint8Array): string {
   let out = '';
   for (let i = 0; i < bytes.length; i += 3) {
@@ -110,32 +93,8 @@ function uint8ArrayToBase64(bytes: Uint8Array): string {
   return out;
 }
 
-/**
- * Lee los bytes de la URI elegida. `fetch` de React Native soporta tanto
- * `content://` (ContentResolver) como `file://`; expo-file-system no.
- */
-async function readUriBytes(uri: string): Promise<Uint8Array> {
-  try {
-    const response = await fetch(uri);
-    const buffer = await response.arrayBuffer();
-    if (buffer.byteLength === 0) throw new Error('respuesta vacía');
-    return new Uint8Array(buffer);
-  } catch (fetchError) {
-    try {
-      const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      return base64ToUint8Array(base64);
-    } catch (legacyError) {
-      const a = fetchError instanceof Error ? fetchError.message : String(fetchError);
-      const b = legacyError instanceof Error ? legacyError.message : String(legacyError);
-      throw new Error(`No se pudo leer el archivo (${a} · legacy: ${b})`);
-    }
-  }
-}
-
 async function openWebDatabase(uri: string): Promise<OpenResult> {
-  const bytes = await readUriBytes(uri);
+  const bytes = await readUriAsUint8Array(uri);
 
   try {
     const db = await SQLite.deserializeDatabaseAsync(bytes);

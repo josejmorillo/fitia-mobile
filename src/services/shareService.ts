@@ -160,14 +160,47 @@ export async function shareJson(envelope: ImportEnvelope, dialogTitle: string): 
  * Lectura de archivos (document picker e intent recibido)
  * ──────────────────────────────────────────────────────────────────── */
 
+/**
+ * Lee la URI elegida como Blob. `fetch(uri).blob()` hace que React Native use su
+ * BlobModule (responseType "blob"), que sí soporta `content://` y `file://` vía
+ * ContentResolver; `.arrayBuffer()`/`.text()` no lo hacen.
+ */
+async function readUriBlob(uri: string): Promise<Blob> {
+  const response = await fetch(uri);
+  return response.blob();
+}
+
+function readBlobAsArrayBuffer(blob: Blob): Promise<ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as ArrayBuffer);
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo.'));
+    reader.readAsArrayBuffer(blob);
+  });
+}
+
+function readBlobAsText(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo.'));
+    reader.readAsText(blob);
+  });
+}
+
+export async function readUriAsUint8Array(uri: string): Promise<Uint8Array> {
+  const blob = await readUriBlob(uri);
+  const buffer = await readBlobAsArrayBuffer(blob);
+  return new Uint8Array(buffer);
+}
+
+export async function readUriAsText(uri: string): Promise<string> {
+  const blob = await readUriBlob(uri);
+  return readBlobAsText(blob);
+}
+
 export async function readUriText(uri: string): Promise<string> {
-  try {
-    const response = await fetch(uri);
-    return await response.text();
-  } catch {
-    const legacy = await import('expo-file-system/legacy');
-    return legacy.readAsStringAsync(uri);
-  }
+  return readUriAsText(uri);
 }
 
 export interface PickedFile {
