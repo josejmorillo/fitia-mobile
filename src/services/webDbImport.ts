@@ -1,4 +1,3 @@
-import { File } from 'expo-file-system';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as SQLite from 'expo-sqlite';
 
@@ -77,29 +76,50 @@ interface OpenResult {
   tempFile: string | null;
 }
 
-async function openWebDatabase(uri: string): Promise<OpenResult> {
-  let deserializeError: unknown = null;
+const BASE64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
-  try {
-    const buffer = await new File(uri).arrayBuffer();
-    const db = await SQLite.deserializeDatabaseAsync(new Uint8Array(buffer));
-    return { db, tempFile: null };
-  } catch (err) {
-    deserializeError = err;
+function base64ToUint8Array(base64: string): Uint8Array {
+  const clean = base64.replace(/[^A-Za-z0-9+/]/g, '');
+  const bytes: number[] = [];
+  let buffer = 0;
+  let bits = 0;
+  for (const ch of clean) {
+    const value = BASE64_ALPHABET.indexOf(ch);
+    if (value < 0) continue;
+    buffer = (buffer << 6) | value;
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      bytes.push((buffer >> bits) & 0xff);
+    }
   }
+  return new Uint8Array(bytes);
+}
+
+async function openWebDatabase(uri: string): Promise<OpenResult> {
+  const base64 = await FileSystem.readAsStringAsync(uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
 
   try {
-    const dir = FileSystem.documentDirectory;
-    if (!dir) throw new Error('directorio de documentos no disponible');
-    const fileName = `import-web-${Date.now()}.sqlite`;
-    const dest = `${dir}${fileName}`;
-    await FileSystem.copyAsync({ from: uri, to: dest });
-    const db = await SQLite.openDatabaseAsync(fileName, {}, dir);
-    return { db, tempFile: dest };
-  } catch (err) {
-    const detail = err instanceof Error ? err.message : String(err);
-    const first = deserializeError instanceof Error ? deserializeError.message : String(deserializeError);
-    throw new Error(`No se pudo abrir la base de datos (${detail} · deserialize: ${first})`);
+    const db = await SQLite.deserializeDatabaseAsync(base64ToUint8Array(base64));
+    return { db, tempFile: null };
+  } catch (deserializeError) {
+    try {
+      const dir = FileSystem.documentDirectory;
+      if (!dir) throw new Error('directorio de documentos no disponible');
+      const fileName = `import-web-${Date.now()}.sqlite`;
+      const dest = `${dir}${fileName}`;
+      await FileSystem.writeAsStringAsync(dest, base64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const db = await SQLite.openDatabaseAsync(fileName, {}, dir);
+      return { db, tempFile: dest };
+    } catch (openError) {
+      const first = deserializeError instanceof Error ? deserializeError.message : String(deserializeError);
+      const second = openError instanceof Error ? openError.message : String(openError);
+      throw new Error(`No se pudo abrir la base de datos (${second} · deserialize: ${first})`);
+    }
   }
 }
 
