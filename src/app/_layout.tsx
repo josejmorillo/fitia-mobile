@@ -1,32 +1,45 @@
 import { Stack } from 'expo-router';
 import { useEffect, useRef } from 'react';
-import { Alert, AppState } from 'react-native';
+import { Alert, AppState, Linking } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { importIncomingUri, takePendingIncomingUri } from '@/services/incomingFile';
 import { tryImportIncomingShare } from '@/services/shareService';
 
 export default function RootLayout() {
-  const checked = useRef(false);
+  const busy = useRef(false);
 
   useEffect(() => {
     let active = true;
 
     async function checkIncoming() {
-      if (!active || checked.current) return;
+      if (!active || busy.current) return;
+      busy.current = true;
       try {
-        const message = await tryImportIncomingShare();
-        if (message) {
-          checked.current = true;
-          if (active) Alert.alert('Archivo recibido', message);
+        const uri = takePendingIncomingUri();
+        const message = uri ? await importIncomingUri(uri) : await tryImportIncomingShare();
+        if (message && active) {
+          Alert.alert('Archivo recibido', message);
         }
-      } catch {
-        // Si el archivo recibido no se puede leer se avisa y se ignora.
-        checked.current = true;
+      } catch (e) {
+        if (active) {
+          Alert.alert(
+            'No se pudo importar',
+            e instanceof Error ? e.message : 'El archivo no es válido.'
+          );
+        }
+      } finally {
+        busy.current = false;
       }
     }
 
-    const sub = AppState.addEventListener('change', (state) => {
+    const appStateSub = AppState.addEventListener('change', (state) => {
       if (state === 'active') checkIncoming();
+    });
+
+    const urlSub = Linking.addEventListener('url', () => {
+      // Pequeño retardo: deja que `redirectSystemPath` guarde la URI entrante.
+      setTimeout(checkIncoming, 300);
     });
 
     const timer = setTimeout(checkIncoming, 1500);
@@ -34,7 +47,8 @@ export default function RootLayout() {
     return () => {
       active = false;
       clearTimeout(timer);
-      sub.remove();
+      appStateSub.remove();
+      urlSub.remove();
     };
   }, []);
 
