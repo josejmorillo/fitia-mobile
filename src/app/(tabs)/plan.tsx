@@ -97,15 +97,9 @@ export default function PlanScreen() {
 
   async function handleSelectFood(food: Food) {
     if (logId == null || pickerMeal == null) return;
-    if (food.servingName && food.servingAmount) {
-      const mealType = pickerMeal;
-      setPickerMeal(null);
-      setAddFood({ mealType, food });
-      return;
-    }
-    await addItem(logId, pickerMeal, food.id, 100);
+    const mealType = pickerMeal;
     setPickerMeal(null);
-    await reload();
+    setAddFood({ mealType, food });
   }
 
   async function handleAddFoodGrams(grams: number) {
