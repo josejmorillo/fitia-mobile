@@ -13,6 +13,8 @@ interface FoodPickerModalProps {
   onClose: () => void;
   onSelect: (food: Food) => void;
   onSelectRecipe?: (recipe: Recipe) => void;
+  multiSelect?: boolean;
+  onSelectMany?: (foods: Food[]) => void;
 }
 
 type Mode = 'foods' | 'recipes';
@@ -22,11 +24,14 @@ export function FoodPickerModal({
   onClose,
   onSelect,
   onSelectRecipe,
+  multiSelect,
+  onSelectMany,
 }: FoodPickerModalProps) {
   const [mode, setMode] = useState<Mode>('foods');
   const [query, setQuery] = useState('');
   const [foods, setFoods] = useState<Food[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [wasVisible, setWasVisible] = useState(false);
   const onSelectRecipeRef = useRef(onSelectRecipe);
 
@@ -38,6 +43,7 @@ export function FoodPickerModal({
     setWasVisible(true);
     setQuery('');
     setMode('foods');
+    setSelectedIds([]);
   } else if (!visible && wasVisible) {
     setWasVisible(false);
   }
@@ -56,17 +62,28 @@ export function FoodPickerModal({
   );
   const filteredRecipes = recipes.filter((r) => r.name.toLowerCase().includes(q));
 
+  function toggleSelect(food: Food) {
+    setSelectedIds((prev) =>
+      prev.includes(food.id) ? prev.filter((id) => id !== food.id) : [...prev, food.id]
+    );
+  }
+
+  function confirmMany() {
+    const selected = foods.filter((f) => selectedIds.includes(f.id));
+    if (selected.length > 0) onSelectMany?.(selected);
+  }
+
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <View style={styles.header}>
-          <Text style={styles.title}>Añadir</Text>
+          <Text style={styles.title}>{multiSelect ? 'Elegir alimentos' : 'Añadir'}</Text>
           <Pressable onPress={onClose} hitSlop={8}>
             <Ionicons name="close" size={24} color={colors.text} />
           </Pressable>
         </View>
 
-        {onSelectRecipe && (
+        {!multiSelect && onSelectRecipe && (
           <View style={styles.segmented}>
             <Pressable
               style={[styles.segment, mode === 'foods' && styles.segmentActive]}
@@ -99,21 +116,34 @@ export function FoodPickerModal({
             data={filteredFoods}
             keyExtractor={(f) => String(f.id)}
             keyboardShouldPersistTaps="handled"
-            renderItem={({ item }) => (
-              <Pressable style={styles.foodRow} onPress={() => onSelect(item)}>
-                <Text style={styles.emoji}>{item.emoji}</Text>
-                <View style={styles.foodInfo}>
-                  <Text style={styles.foodName} numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                  <Text style={styles.foodMacros}>
-                    {item.caloriesPer100g} kcal · P {item.proteinPer100g} · C {item.carbsPer100g} · G{' '}
-                    {item.fatPer100g} /100g
-                  </Text>
-                </View>
-                <Ionicons name="add-circle" size={24} color={colors.primaryDark} />
-              </Pressable>
-            )}
+            renderItem={({ item }) => {
+              const checked = selectedIds.includes(item.id);
+              return (
+                <Pressable
+                  style={styles.foodRow}
+                  onPress={() => (multiSelect ? toggleSelect(item) : onSelect(item))}>
+                  <Text style={styles.emoji}>{item.emoji}</Text>
+                  <View style={styles.foodInfo}>
+                    <Text style={styles.foodName} numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                    <Text style={styles.foodMacros}>
+                      {item.caloriesPer100g} kcal · P {item.proteinPer100g} · C {item.carbsPer100g} · G{' '}
+                      {item.fatPer100g} /100g
+                    </Text>
+                  </View>
+                  {multiSelect ? (
+                    <Ionicons
+                      name={checked ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={24}
+                      color={checked ? colors.primary : colors.border}
+                    />
+                  ) : (
+                    <Ionicons name="add-circle" size={24} color={colors.primaryDark} />
+                  )}
+                </Pressable>
+              );
+            }}
             ListEmptyComponent={
               <Text style={styles.empty}>Sin alimentos. Añádelos en la pestaña de base de datos.</Text>
             }
@@ -139,6 +169,19 @@ export function FoodPickerModal({
               <Text style={styles.empty}>Sin recetas. Créalas en la pestaña de base de datos.</Text>
             }
           />
+        )}
+
+        {multiSelect && (
+          <Pressable
+            style={[styles.confirmBtn, selectedIds.length === 0 && styles.confirmBtnDisabled]}
+            onPress={confirmMany}
+            disabled={selectedIds.length === 0}>
+            <Text style={styles.confirmText}>
+              {selectedIds.length > 0
+                ? `Añadir ${selectedIds.length} alimento(s)`
+                : 'Selecciona alimentos'}
+            </Text>
+          </Pressable>
         )}
       </SafeAreaView>
     </Modal>
@@ -228,5 +271,21 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 40,
     paddingHorizontal: 32,
+  },
+  confirmBtn: {
+    backgroundColor: colors.primary,
+    marginHorizontal: 16,
+    marginVertical: 10,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  confirmBtnDisabled: {
+    opacity: 0.5,
+  },
+  confirmText: {
+    color: '#1A1A1A',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });

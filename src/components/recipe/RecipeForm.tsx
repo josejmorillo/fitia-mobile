@@ -18,6 +18,7 @@ import { FoodForm } from '@/components/food/FoodForm';
 import { colors } from '@/utils/colors';
 import { ingredientTotals } from '@/utils/macros';
 import type { Food, RecipeIngredient } from '@/utils/types';
+import { IngredientsQuantityModal } from './IngredientsQuantityModal';
 
 export interface RecipeFormValues {
   name: string;
@@ -55,6 +56,7 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: RecipeFormProps) 
       .filter((d): d is Draft => d != null)
   );
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [pendingFoods, setPendingFoods] = useState<Food[] | null>(null);
   const [createVisible, setCreateVisible] = useState(false);
   const [emojiVisible, setEmojiVisible] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -64,6 +66,17 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: RecipeFormProps) 
     setDrafts((prev) => [
       ...prev,
       { key: `n${keySeq.current++}`, food, amount: '100' },
+    ]);
+  }
+
+  function addDrafts(items: { food: Food; amount: number }[]) {
+    setDrafts((prev) => [
+      ...prev,
+      ...items.map((item) => ({
+        key: `n${keySeq.current++}`,
+        food: item.food,
+        amount: String(item.amount),
+      })),
     ]);
   }
 
@@ -223,6 +236,20 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: RecipeFormProps) 
         visible={pickerVisible}
         onClose={() => setPickerVisible(false)}
         onSelect={addFood}
+        multiSelect
+        onSelectMany={(foods) => {
+          setPickerVisible(false);
+          setPendingFoods(foods);
+        }}
+      />
+
+      <IngredientsQuantityModal
+        foods={pendingFoods}
+        onClose={() => setPendingFoods(null)}
+        onConfirm={(items) => {
+          addDrafts(items);
+          setPendingFoods(null);
+        }}
       />
 
       <EmojiPickerModal
