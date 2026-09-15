@@ -410,6 +410,8 @@ export interface ImportPreviewItem {
   emoji: string;
   exists: boolean;
   detail?: string;
+  /** Solo recetas: claves de los alimentos que necesita. */
+  ingredientFoodKeys?: string[];
 }
 
 /** Analiza una copia de seguridad: qué alimentos/recetas trae y cuáles ya existen. */
@@ -445,6 +447,9 @@ export async function analyzeBackup(data: BackupPayload): Promise<ImportPreviewI
       emoji: r.emoji || '🍽️',
       exists,
       detail: `${r.ingredients.length} ingredientes`,
+      ingredientFoodKeys: r.ingredients
+        .filter((ing) => ing?.food && isFoodPayload(ing.food))
+        .map((ing) => `food:${ing.food.name}`),
     });
   }
 
