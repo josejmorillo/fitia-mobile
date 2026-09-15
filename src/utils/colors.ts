@@ -14,5 +14,5 @@ export const colors = {
   fat: '#2196F3',
   track: '#EEEEEE',
   under: '#FACC15',
-  iconBg: '#F5F5F5',
+  iconBg: '#F8F8F8',
 } as const;

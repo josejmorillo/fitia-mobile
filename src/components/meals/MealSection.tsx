@@ -74,16 +74,19 @@ export function MealSection({
 
         <View style={styles.miniBars}>
           {miniMacros.map((m) => {
-            const pct = m.goal > 0 ? Math.min((m.value / m.goal) * 100, 100) : 0;
+            const pct = m.goal > 0 ? (m.value / m.goal) * 100 : 0;
             return (
               <View key={m.key} style={styles.miniBar}>
                 <Text style={styles.miniLabel}>
                   <Text style={{ color: m.color, fontWeight: '700' }}>{m.key}</Text>{' '}
-                  <Text style={{ color: colors.textTertiary }}>{Math.round(m.value)}g</Text>
+                  <Text style={{ color: colors.textTertiary }}>{Math.round(pct)}%</Text>
                 </Text>
                 <View style={styles.miniTrack}>
                   <View
-                    style={[styles.miniFill, { width: `${pct}%`, backgroundColor: m.color }]}
+                    style={[
+                      styles.miniFill,
+                      { width: `${Math.min(pct, 100)}%`, backgroundColor: m.color },
+                    ]}
                   />
                 </View>
               </View>

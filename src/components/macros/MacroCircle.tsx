@@ -73,6 +73,8 @@ const styles = StyleSheet.create({
   circleWrap: {
     width: SIZE,
     height: SIZE,
+    borderRadius: SIZE / 2,
+    backgroundColor: colors.iconBg,
   },
   svg: {
     transform: [{ rotate: '-90deg' }],

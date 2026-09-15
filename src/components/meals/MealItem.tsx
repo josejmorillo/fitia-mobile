@@ -61,20 +61,14 @@ export function MealItem({
           ) : null
         }
         overshootLeft={false}>
-        <View
+        <Pressable
           style={[
             styles.container,
             !consumed && styles.notConsumed,
             isDragging && styles.draggingContainer,
-          ]}>
-          <Pressable
-            style={styles.dragHandle}
-            onLongPress={drag}
-            delayLongPress={150}
-            hitSlop={6}>
-            <Ionicons name="ellipsis-vertical" size={16} color={colors.textTertiary} />
-          </Pressable>
-
+          ]}
+          onLongPress={drag}
+          delayLongPress={200}>
           <Pressable style={styles.checkIcon} onPress={() => onToggle(item.id)} hitSlop={8}>
             <Ionicons
               name={consumed ? 'checkmark-circle' : 'ellipse-outline'}
@@ -123,7 +117,7 @@ export function MealItem({
               </Pressable>
             </View>
           </View>
-        </View>
+        </Pressable>
       </Swipeable>
     </View>
   );
@@ -154,10 +148,6 @@ const styles = StyleSheet.create({
   },
   notConsumed: {
     opacity: 0.6,
-  },
-  dragHandle: {
-    paddingVertical: 6,
-    paddingHorizontal: 2,
   },
   copyAction: {
     width: 80,
