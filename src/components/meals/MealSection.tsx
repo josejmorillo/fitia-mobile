@@ -148,9 +148,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: 'rgba(255, 215, 0, 0.12)',
+    backgroundColor: colors.iconBg,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 215, 0, 0.35)',
+    borderBottomColor: colors.track,
     gap: 12,
   },
   title: {
