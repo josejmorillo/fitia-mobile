@@ -35,6 +35,7 @@ interface QuantitySheetProps {
   unitSuffix: string;
   hint?: string;
   macros: QuantityMacros;
+  confirmLabel?: string;
   confirmDisabled?: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -52,6 +53,7 @@ export function QuantitySheet({
   unitSuffix,
   hint,
   macros,
+  confirmLabel = 'Añadir',
   confirmDisabled,
   onClose,
   onConfirm,
@@ -103,7 +105,7 @@ export function QuantitySheet({
             </View>
           ) : null}
 
-          <View style={styles.amountRow}>
+          <View style={styles.amountBox}>
             <TextInput
               style={styles.amount}
               value={amount}
@@ -124,7 +126,7 @@ export function QuantitySheet({
             style={[styles.confirmBtn, confirmDisabled && styles.confirmBtnDisabled]}
             onPress={onConfirm}
             disabled={confirmDisabled}>
-            <Text style={styles.confirmText}>Añadir</Text>
+            <Text style={styles.confirmText}>{confirmLabel}</Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -196,23 +198,31 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     fontWeight: '700',
   },
-  amountRow: {
+  amountBox: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 8,
     marginTop: 18,
+    minWidth: 170,
+    alignSelf: 'center',
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
   },
   amount: {
-    fontSize: 34,
-    fontWeight: '800',
+    fontSize: 28,
+    fontWeight: '700',
     color: colors.text,
-    minWidth: 70,
+    minWidth: 64,
     textAlign: 'center',
     padding: 0,
   },
   amountUnit: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.textSecondary,
   },
