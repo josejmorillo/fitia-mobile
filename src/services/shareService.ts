@@ -415,12 +415,16 @@ export interface ImportPreviewItem {
 /** Analiza una copia de seguridad: qué alimentos/recetas trae y cuáles ya existen. */
 export async function analyzeBackup(data: BackupPayload): Promise<ImportPreviewItem[]> {
   const items: ImportPreviewItem[] = [];
+  const seen = new Set<string>();
 
   for (const f of data.foods) {
     if (!isFoodPayload(f)) continue;
+    const key = `food:${f.name}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
     const exists = (await findFoodIdByName(f.name)) != null;
     items.push({
-      key: `food:${f.name}`,
+      key,
       kind: 'food',
       name: f.name,
       emoji: f.emoji || '🍽️',
@@ -430,9 +434,12 @@ export async function analyzeBackup(data: BackupPayload): Promise<ImportPreviewI
 
   for (const r of data.recipes) {
     if (!isRecipePayload(r)) continue;
+    const key = `recipe:${r.name}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
     const exists = (await findRecipeIdByName(r.name)) != null;
     items.push({
-      key: `recipe:${r.name}`,
+      key,
       kind: 'recipe',
       name: r.name,
       emoji: r.emoji || '🍽️',

@@ -100,3 +100,17 @@ export async function countFoodReferences(id: number): Promise<number> {
   );
   return (items?.c ?? 0) + (recipes?.c ?? 0);
 }
+
+/**
+ * Borra TODOS los alimentos, recetas y los registros del diario que los usan.
+ * Conserva el perfil, los objetivos y las mediciones corporales.
+ */
+export async function wipeFoodCatalog(): Promise<void> {
+  const db = await getDatabase();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('DELETE FROM daily_log_items');
+    await db.runAsync('DELETE FROM recipe_foods');
+    await db.runAsync('DELETE FROM recipes');
+    await db.runAsync('DELETE FROM foods');
+  });
+}

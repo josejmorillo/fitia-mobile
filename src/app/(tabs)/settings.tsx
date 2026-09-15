@@ -3,8 +3,10 @@ import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ConfirmDeleteModal } from '@/components/common/ConfirmDeleteModal';
 import { FormScrollView } from '@/components/common/FormScrollView';
 import { ImportPreviewModal } from '@/components/common/ImportPreviewModal';
+import { wipeFoodCatalog } from '@/services/foodService';
 import { deleteApiKey, getApiKeys, saveApiKey } from '@/services/keys';
 import { exportBackup } from '@/services/backupService';
 import {
@@ -30,6 +32,7 @@ export default function SettingsScreen() {
   const [previewItems, setPreviewItems] = useState<ImportPreviewItem[] | null>(null);
   const [previewPayload, setPreviewPayload] = useState<BackupPayload | null>(null);
   const [importing, setImporting] = useState(false);
+  const [wipeVisible, setWipeVisible] = useState(false);
 
   useEffect(() => {
     getApiKeys().then((k) => {
@@ -149,6 +152,28 @@ export default function SettingsScreen() {
     }
   }
 
+  function handleWipeRequest() {
+    Alert.alert(
+      'Borrar alimentos y recetas',
+      'Vas a borrar TODOS los alimentos, recetas y los registros del diario que los usan. Se conservan tu perfil, objetivos y mediciones. Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Continuar', style: 'destructive', onPress: () => setWipeVisible(true) },
+      ]
+    );
+  }
+
+  async function handleWipeConfirm() {
+    try {
+      await wipeFoodCatalog();
+      setWipeVisible(false);
+      Alert.alert('Hecho', 'Se han borrado todos los alimentos, recetas y registros del diario.');
+    } catch (e) {
+      console.error('[wipe] error:', e);
+      Alert.alert('Error', e instanceof Error ? e.message : 'No se pudo borrar.');
+    }
+  }
+
   function showGroqInfo() {
     Alert.alert(
       'Clave de Groq',
@@ -254,6 +279,16 @@ export default function SettingsScreen() {
           <Ionicons name="download-outline" size={18} color={colors.primaryDark} />
           <Text style={styles.dataBtnGhostText}>Importar alimento o receta</Text>
         </Pressable>
+
+        <Text style={styles.sectionTitle}>Zona peligrosa</Text>
+        <Text style={styles.hint}>
+          Borra todos los alimentos y recetas (y los registros del diario que los usan). Se
+          conservan tu perfil, objetivos y mediciones.
+        </Text>
+        <Pressable style={[styles.dataBtn, styles.dangerBtn]} onPress={handleWipeRequest}>
+          <Ionicons name="trash-outline" size={18} color="#FFFFFF" />
+          <Text style={styles.dangerText}>Borrar alimentos y recetas</Text>
+        </Pressable>
       </FormScrollView>
 
       <ImportPreviewModal
@@ -264,6 +299,14 @@ export default function SettingsScreen() {
           setPreviewPayload(null);
         }}
         onConfirm={handleConfirmImport}
+      />
+
+      <ConfirmDeleteModal
+        visible={wipeVisible}
+        title="Borrar alimentos y recetas"
+        warning="Vas a borrar TODOS los alimentos, recetas y los registros del diario. Se conservan tu perfil, objetivos y mediciones. Esta acción no se puede deshacer."
+        onClose={() => setWipeVisible(false)}
+        onConfirm={handleWipeConfirm}
       />
     </SafeAreaView>
   );
@@ -381,6 +424,15 @@ const styles = StyleSheet.create({
   dataBtnGhost: {
     borderWidth: 1,
     borderColor: colors.primary,
+  },
+  dangerBtn: {
+    backgroundColor: '#C62828',
+    marginTop: 4,
+  },
+  dangerText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   dataBtnText: {
     color: '#1A1A1A',
