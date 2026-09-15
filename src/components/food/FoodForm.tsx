@@ -58,6 +58,10 @@ export function FoodForm({ initial, onSubmit, submitLabel }: FoodFormProps) {
   const [fat, setFat] = useState(initial ? String(initial.fatPer100g) : '');
   const [category, setCategory] = useState(initial?.category ?? 'Otros');
   const [emoji, setEmoji] = useState(initial?.emoji ?? '🍽️');
+  const [servingName, setServingName] = useState(initial?.servingName ?? '');
+  const [servingAmount, setServingAmount] = useState(
+    initial?.servingAmount != null ? String(initial.servingAmount) : ''
+  );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [aiVisible, setAiVisible] = useState(false);
@@ -73,6 +77,8 @@ export function FoodForm({ initial, onSubmit, submitLabel }: FoodFormProps) {
     if (data.fat_g != null) setFat(String(data.fat_g));
     if (data.category && FOOD_CATEGORIES.includes(data.category)) setCategory(data.category);
     if (data.emoji) setEmoji(data.emoji);
+    if (data.serving_name) setServingName(data.serving_name);
+    if (data.serving_amount_g != null) setServingAmount(String(data.serving_amount_g));
   }
 
   function parseNum(s: string): number {
@@ -90,6 +96,7 @@ export function FoodForm({ initial, onSubmit, submitLabel }: FoodFormProps) {
       return;
     }
 
+    const serving = parseFloat(servingAmount.replace(',', '.'));
     setSaving(true);
     await onSubmit({
       name: name.trim(),
@@ -100,8 +107,8 @@ export function FoodForm({ initial, onSubmit, submitLabel }: FoodFormProps) {
       proteinPer100g: parseNum(protein),
       carbsPer100g: parseNum(carbs),
       fatPer100g: parseNum(fat),
-      servingName: null,
-      servingAmount: null,
+      servingName: servingName.trim() || null,
+      servingAmount: isNaN(serving) || serving <= 0 ? null : serving,
     });
   }
 
@@ -182,6 +189,30 @@ export function FoodForm({ initial, onSubmit, submitLabel }: FoodFormProps) {
         <NumericInput label="Grasa (g)" value={fat} onChange={setFat} />
       </View>
 
+      <Text style={styles.sectionTitle}>Unidad (opcional)</Text>
+      <Text style={styles.help}>
+        Si lo rellenas, podrás registrar este alimento por unidades (ej. 2 lonchas) además de en
+        gramos.
+      </Text>
+      <View style={styles.macroRow}>
+        <View style={styles.gridCell}>
+          <Text style={styles.label}>Nombre de la unidad</Text>
+          <TextInput
+            style={styles.input}
+            value={servingName}
+            onChangeText={setServingName}
+            placeholder="Ej. loncha, ración"
+            placeholderTextColor={colors.textTertiary}
+          />
+        </View>
+        <NumericInput
+          label="Peso de la unidad (g)"
+          value={servingAmount}
+          onChange={setServingAmount}
+          placeholder="Ej. 30"
+        />
+      </View>
+
       {error && <Text style={styles.error}>{error}</Text>}
 
       <Pressable style={styles.saveBtn} onPress={handleSave} disabled={saving}>
@@ -258,6 +289,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: colors.textSecondary,
+  },
+  help: {
+    fontSize: 11,
+    color: colors.textTertiary,
+    marginBottom: 6,
   },
   label: {
     fontSize: 13,

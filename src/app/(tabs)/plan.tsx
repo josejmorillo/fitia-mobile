@@ -8,6 +8,7 @@ import { FoodPickerModal } from '@/components/food/FoodPickerModal';
 import { MacroBar } from '@/components/macros/MacroBar';
 import { MacroCircle } from '@/components/macros/MacroCircle';
 import { AmountModal } from '@/components/meals/AmountModal';
+import { FoodAmountModal } from '@/components/meals/FoodAmountModal';
 import { MealSection } from '@/components/meals/MealSection';
 import { RepeatMealModal } from '@/components/meals/RepeatMealModal';
 import { RecipeAmountModal } from '@/components/meals/RecipeAmountModal';
@@ -44,6 +45,7 @@ export default function PlanScreen() {
   const [repeatMealType, setRepeatMealType] = useState<MealType | null>(null);
   const [repeating, setRepeating] = useState(false);
   const [addRecipe, setAddRecipe] = useState<{ mealType: MealType; recipe: Recipe } | null>(null);
+  const [addFood, setAddFood] = useState<{ mealType: MealType; food: Food } | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -93,8 +95,21 @@ export default function PlanScreen() {
 
   async function handleSelectFood(food: Food) {
     if (logId == null || pickerMeal == null) return;
+    if (food.servingName && food.servingAmount) {
+      const mealType = pickerMeal;
+      setPickerMeal(null);
+      setAddFood({ mealType, food });
+      return;
+    }
     await addItem(logId, pickerMeal, food.id, 100);
     setPickerMeal(null);
+    await reload();
+  }
+
+  async function handleAddFoodGrams(grams: number) {
+    if (logId == null || addFood == null || grams <= 0) return;
+    await addItem(logId, addFood.mealType, addFood.food.id, grams);
+    setAddFood(null);
     await reload();
   }
 
@@ -241,6 +256,11 @@ export default function PlanScreen() {
         recipe={addRecipe?.recipe ?? null}
         onClose={() => setAddRecipe(null)}
         onConfirm={handleAddRecipeGrams}
+      />
+      <FoodAmountModal
+        food={addFood?.food ?? null}
+        onClose={() => setAddFood(null)}
+        onConfirm={handleAddFoodGrams}
       />
     </SafeAreaView>
   );

@@ -34,6 +34,12 @@ export function MealItem({
   const name = food?.name ?? recipe?.name ?? '';
   const subtitle = food ? food.brand : recipe ? 'Receta' : null;
 
+  let amountLabel = `${item.amount} g`;
+  if (food?.servingName && food.servingAmount) {
+    const units = Math.round((item.amount / food.servingAmount) * 100) / 100;
+    amountLabel = `${units} ${food.servingName} (${item.amount} g)`;
+  }
+
   return (
     <View style={styles.swipeWrapper}>
       <Swipeable
@@ -79,7 +85,7 @@ export function MealItem({
             <View style={styles.detailsRow}>
               <Text style={styles.details}>{Math.round(macros.calories)} kcal • </Text>
               <Pressable onPress={() => onAmountPress(item)}>
-                <Text style={styles.amountLink}>{item.amount} g</Text>
+                <Text style={styles.amountLink}>{amountLabel}</Text>
               </Pressable>
             </View>
           </View>

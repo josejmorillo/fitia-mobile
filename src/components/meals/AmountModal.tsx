@@ -10,34 +10,46 @@ interface AmountModalProps {
   onSave: (itemId: number, amount: number) => void;
 }
 
-type Unit = 'g' | 'raciones';
+type Unit = 'units' | 'g';
+
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 
 export function AmountModal({ item, onClose, onSave }: AmountModalProps) {
-  const servingGrams = item?.recipe?.servingGrams ?? null;
+  const recipe = item?.recipe;
+  const food = item?.food;
+  const servingGrams = recipe?.servingGrams ?? food?.servingAmount ?? null;
+  const unitName = recipe ? 'raciones' : (food?.servingName ?? 'unidades');
+  const unitLabel = recipe ? 'Raciones' : capitalize(unitName);
+
   const [value, setValue] = useState('');
   const [unit, setUnit] = useState<Unit>('g');
   const [wasOpen, setWasOpen] = useState(false);
 
   if (item && !wasOpen) {
     setWasOpen(true);
-    setUnit(servingGrams ? 'raciones' : 'g');
-    const initial = item.recipe && servingGrams ? item.amount / servingGrams : item.amount;
+    setUnit(servingGrams ? 'units' : 'g');
+    const initial = servingGrams ? item.amount / servingGrams : item.amount;
     const rounded = Math.round(initial * 100) / 100;
-    setValue(Number.isInteger(rounded) ? String(rounded) : String(rounded));
+    setValue(String(rounded));
   } else if (!item && wasOpen) {
     setWasOpen(false);
   }
 
-  const name = item?.food ? `${item.food.emoji} ${item.food.name}` : item?.recipe ? `${item.recipe.emoji} ${item.recipe.name}` : '';
+  const name = food ? `${food.emoji} ${food.name}` : recipe ? `${recipe.emoji} ${recipe.name}` : '';
 
   function handleSave() {
     if (!item) return;
     const parsed = parseFloat(value.replace(',', '.'));
     if (isNaN(parsed) || parsed <= 0) return;
-    const grams = unit === 'raciones' && servingGrams ? parsed * servingGrams : parsed;
+    const grams = unit === 'units' && servingGrams ? parsed * servingGrams : parsed;
     if (grams <= 0) return;
     onSave(item.id, grams);
   }
+
+  const parsedValue = parseFloat(value.replace(',', '.'));
+  const quantity = isNaN(parsedValue) ? 0 : parsedValue;
 
   return (
     <Modal visible={item != null} transparent animationType="fade" onRequestClose={onClose}>
@@ -53,10 +65,10 @@ export function AmountModal({ item, onClose, onSave }: AmountModalProps) {
           {servingGrams ? (
             <View style={styles.segmented}>
               <Pressable
-                style={[styles.segment, unit === 'raciones' && styles.segmentActive]}
-                onPress={() => setUnit('raciones')}>
-                <Text style={[styles.segmentText, unit === 'raciones' && styles.segmentTextActive]}>
-                  Raciones
+                style={[styles.segment, unit === 'units' && styles.segmentActive]}
+                onPress={() => setUnit('units')}>
+                <Text style={[styles.segmentText, unit === 'units' && styles.segmentTextActive]}>
+                  {unitLabel}
                 </Text>
               </Pressable>
               <Pressable
@@ -77,14 +89,8 @@ export function AmountModal({ item, onClose, onSave }: AmountModalProps) {
             autoFocus
             selectTextOnFocus
           />
-          {unit === 'raciones' && servingGrams ? (
-            <Text style={styles.hint}>
-              {(() => {
-                const n = parseFloat(value.replace(',', '.'));
-                const q = isNaN(n) ? 0 : n;
-                return `Equivale a ${Math.round(q * servingGrams)} g`;
-              })()}
-            </Text>
+          {unit === 'units' && servingGrams ? (
+            <Text style={styles.hint}>Equivale a {Math.round(quantity * servingGrams)} g</Text>
           ) : null}
 
           <View style={styles.actions}>
@@ -193,7 +199,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   saveText: {
-    color: '#FFFFFF',
+    color: '#1A1A1A',
     fontWeight: '700',
   },
 });
