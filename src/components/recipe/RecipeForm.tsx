@@ -175,19 +175,6 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: RecipeFormProps) 
         </View>
 
         <Text style={styles.label}>Ingredientes</Text>
-        {drafts.length > 0 && (
-          <View style={styles.totalsCard}>
-            <Text style={styles.totalsMain}>{Math.round(totals.calories)} kcal</Text>
-            <Text style={styles.totalsMacros}>
-              P {totals.protein.toFixed(1)}g · C {totals.carbs.toFixed(1)}g · G{' '}
-              {totals.fat.toFixed(1)}g
-            </Text>
-            <Text style={styles.totalsWeight}>
-              {Math.round(totals.totalGrams)} g en total (1 ración ={' '}
-              {servingGrams.trim() ? `${servingGrams.trim()} g` : 'sin definir'})
-            </Text>
-          </View>
-        )}
         {drafts.length > 0 ? (
           <View style={styles.ingredientList}>
             {drafts.map((d) => (
@@ -221,6 +208,41 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: RecipeFormProps) 
             <Text style={styles.addIngredientText}>Nuevo alimento</Text>
           </Pressable>
         </View>
+
+        {drafts.length > 0 && (
+          <View style={styles.totalsCard}>
+            <View style={styles.totalsHeader}>
+              <Text style={styles.totalsKcal}>{Math.round(totals.calories)} kcal</Text>
+              <Text style={styles.totalsWeight}>{Math.round(totals.totalGrams)} g en total</Text>
+            </View>
+
+            {[
+              { label: 'Proteína', value: totals.protein, color: colors.protein, factor: 4 },
+              { label: 'Carbos', value: totals.carbs, color: colors.carbs, factor: 4 },
+              { label: 'Grasa', value: totals.fat, color: colors.fat, factor: 9 },
+            ].map((m) => {
+              const pct =
+                totals.calories > 0
+                  ? Math.min(((m.value * m.factor) / totals.calories) * 100, 100)
+                  : 0;
+              return (
+                <View key={m.label} style={styles.macroRow}>
+                  <Text style={styles.macroLabel}>{m.label}</Text>
+                  <Text style={styles.macroValue}>{m.value.toFixed(1)} g</Text>
+                  <View style={styles.macroTrack}>
+                    <View
+                      style={[styles.macroFill, { width: `${pct}%`, backgroundColor: m.color }]}
+                    />
+                  </View>
+                </View>
+              );
+            })}
+
+            <Text style={styles.totalsServing}>
+              1 ración = {servingGrams.trim() ? `${servingGrams.trim()} g` : 'sin definir'}
+            </Text>
+          </View>
+        )}
 
         {error && <Text style={styles.error}>{error}</Text>}
 
@@ -307,26 +329,58 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   totalsCard: {
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    padding: 10,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 8,
     marginBottom: 8,
-    gap: 2,
+    gap: 10,
   },
-  totalsMain: {
-    fontSize: 15,
+  totalsHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+  },
+  totalsKcal: {
+    fontSize: 18,
     fontWeight: '800',
-    color: '#1A1A1A',
-  },
-  totalsMacros: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#1A1A1A',
+    color: colors.text,
   },
   totalsWeight: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  macroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  macroLabel: {
+    width: 62,
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  macroValue: {
+    width: 54,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'right',
+  },
+  macroTrack: {
+    flex: 1,
+    height: 5,
+    backgroundColor: colors.track,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  macroFill: {
+    height: '100%',
+    borderRadius: 999,
+  },
+  totalsServing: {
     fontSize: 11,
-    color: '#1A1A1A',
-    opacity: 0.8,
+    color: colors.textTertiary,
   },
   label: {
     fontSize: 13,

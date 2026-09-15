@@ -194,6 +194,23 @@ export function ProfileForm() {
         <>
           <Text style={styles.sectionTitle}>Estimación</Text>
           <View style={styles.card}>
+            <View style={styles.hero}>
+              <Text style={styles.heroLabel}>Calorías objetivo</Text>
+              <View style={styles.heroRow}>
+                <Text style={styles.heroValue}>{estimate.targetCalories}</Text>
+                <Text style={styles.heroUnit}>kcal</Text>
+              </View>
+              {estimate.deficitSurplus !== 0 && (
+                <Text style={styles.heroNote}>
+                  {estimate.deficitSurplus < 0
+                    ? `Déficit de ${Math.abs(estimate.deficitSurplus)} kcal para definir`
+                    : `Superávit de ${estimate.deficitSurplus} kcal para volumen`}
+                </Text>
+              )}
+            </View>
+
+            <View style={styles.divider} />
+
             <View style={styles.statRow}>
               <View style={styles.stat}>
                 <Text style={styles.statLabel}>Metabolismo (BMR)</Text>
@@ -205,33 +222,30 @@ export function ProfileForm() {
               </View>
             </View>
 
-            <View style={styles.targetRow}>
-              <Text style={styles.targetLabel}>Calorías objetivo</Text>
-              <Text style={styles.targetValue}>{estimate.targetCalories} kcal</Text>
-            </View>
+            <View style={styles.divider} />
 
-            <View style={styles.statRow}>
-              <View style={styles.stat}>
-                <Text style={styles.statLabel}>Proteína</Text>
-                <Text style={styles.statValue}>{estimate.protein} g</Text>
-              </View>
-              <View style={styles.stat}>
-                <Text style={styles.statLabel}>Carbos</Text>
-                <Text style={styles.statValue}>{estimate.carbs} g</Text>
-              </View>
-              <View style={styles.stat}>
-                <Text style={styles.statLabel}>Grasa</Text>
-                <Text style={styles.statValue}>{estimate.fat} g</Text>
-              </View>
-            </View>
+            {[
+              { label: 'Proteína', value: estimate.protein, color: colors.protein, factor: 4 },
+              { label: 'Carbos', value: estimate.carbs, color: colors.carbs, factor: 4 },
+              { label: 'Grasa', value: estimate.fat, color: colors.fat, factor: 9 },
+            ].map((m) => {
+              const pct =
+                estimate.targetCalories > 0
+                  ? Math.min(((m.value * m.factor) / estimate.targetCalories) * 100, 100)
+                  : 0;
+              return (
+                <View key={m.label} style={styles.macroRow}>
+                  <Text style={styles.macroLabel}>{m.label}</Text>
+                  <Text style={styles.macroValue}>{m.value} g</Text>
+                  <View style={styles.macroTrack}>
+                    <View
+                      style={[styles.macroFill, { width: `${pct}%`, backgroundColor: m.color }]}
+                    />
+                  </View>
+                </View>
+              );
+            })}
 
-            {estimate.deficitSurplus !== 0 && (
-              <Text style={styles.estimateNote}>
-                {estimate.deficitSurplus < 0
-                  ? `Déficit de ${Math.abs(estimate.deficitSurplus)} kcal para definir`
-                  : `Superávit de ${estimate.deficitSurplus} kcal para volumen`}
-              </Text>
-            )}
             {estimate.warnings.map((w) => (
               <Text key={w} style={styles.estimateWarn}>
                 ⚠️ {w}
@@ -369,30 +383,74 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
   },
-  targetRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.primary,
-    borderRadius: 10,
+  hero: {
+    backgroundColor: 'rgba(255, 215, 0, 0.14)',
+    borderRadius: 14,
+    paddingVertical: 16,
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 8,
+    alignItems: 'center',
   },
-  targetLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1A1A1A',
+  heroLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
-  targetValue: {
-    fontSize: 17,
+  heroRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+    marginTop: 2,
+  },
+  heroValue: {
+    fontSize: 46,
     fontWeight: '800',
-    color: '#1A1A1A',
+    color: colors.text,
   },
-  estimateNote: {
+  heroUnit: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  heroNote: {
     fontSize: 12,
     color: colors.textSecondary,
-    marginTop: 2,
+    marginTop: 4,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: 12,
+  },
+  macroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  macroLabel: {
+    width: 62,
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  macroValue: {
+    width: 54,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'right',
+  },
+  macroTrack: {
+    flex: 1,
+    height: 5,
+    backgroundColor: colors.track,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  macroFill: {
+    height: '100%',
+    borderRadius: 999,
   },
   estimateWarn: {
     fontSize: 12,

@@ -148,8 +148,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 10,
+    backgroundColor: 'rgba(255, 215, 0, 0.12)',
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: 'rgba(255, 215, 0, 0.35)',
     gap: 12,
   },
   title: {

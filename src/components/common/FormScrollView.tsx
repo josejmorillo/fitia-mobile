@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useKeyboardHeight } from '@/utils/useKeyboardHeight';
 
@@ -10,12 +11,12 @@ interface FormScrollViewProps {
 }
 
 /**
- * ScrollView para formularios que evita que el teclado tape los campos.
- * En iOS usa KeyboardAvoidingView (padding); en Android añade padding inferior
- * igual a la altura del teclado para poder desplazarse hasta el botón de guardar.
+ * ScrollView para formularios que evita que el teclado o la barra de navegación
+ * de Android tapen los campos/botones inferiores.
  */
 export function FormScrollView({ children, style, contentContainerStyle }: FormScrollViewProps) {
   const keyboardHeight = useKeyboardHeight();
+  const insets = useSafeAreaInsets();
 
   return (
     <KeyboardAvoidingView
@@ -25,9 +26,10 @@ export function FormScrollView({ children, style, contentContainerStyle }: FormS
         style={style}
         contentContainerStyle={[
           contentContainerStyle,
-          Platform.OS === 'android' && keyboardHeight > 0
-            ? { paddingBottom: keyboardHeight + 40 }
-            : null,
+          {
+            paddingBottom:
+              40 + insets.bottom + (Platform.OS === 'android' ? keyboardHeight : 0),
+          },
         ]}
         keyboardShouldPersistTaps="handled">
         {children}
