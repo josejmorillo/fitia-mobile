@@ -1,5 +1,7 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Gesture } from 'react-native-gesture-handler';
 import { NestedReorderableList } from 'react-native-reorderable-list';
 
 import { colors } from '@/utils/colors';
@@ -45,6 +47,7 @@ export function MealSection({
   onRepeat,
   onReorder,
 }: MealSectionProps) {
+  const panGesture = useMemo(() => Gesture.Pan().activateAfterLongPress(220), []);
   const mealItems = items.filter((i) => i.mealType === mealType);
   const mealMacros = mealItems.filter((i) => i.consumed).reduce(
     (acc, i) => {
@@ -111,6 +114,7 @@ export function MealSection({
           scrollable={false}
           scrollEnabled={false}
           shouldUpdateActiveItem
+          panGesture={panGesture}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => (
             <MealItem
@@ -149,8 +153,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     backgroundColor: colors.iconBg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.track,
     gap: 12,
   },
   title: {
