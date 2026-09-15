@@ -403,7 +403,52 @@ async function importRecipeEnvelope(data: RecipePayload): Promise<ImportSummary>
   return { kind: 'recipe', label: 'Receta', created: 1, skipped: 0, detail: data.name };
 }
 
-export async function importBackupEnvelope(data: BackupPayload): Promise<ImportSummary> {
+export interface ImportPreviewItem {
+  key: string;
+  kind: 'food' | 'recipe';
+  name: string;
+  emoji: string;
+  exists: boolean;
+  detail?: string;
+}
+
+/** Analiza una copia de seguridad: qué alimentos/recetas trae y cuáles ya existen. */
+export async function analyzeBackup(data: BackupPayload): Promise<ImportPreviewItem[]> {
+  const items: ImportPreviewItem[] = [];
+
+  for (const f of data.foods) {
+    if (!isFoodPayload(f)) continue;
+    const exists = (await findFoodIdByName(f.name)) != null;
+    items.push({
+      key: `food:${f.name}`,
+      kind: 'food',
+      name: f.name,
+      emoji: f.emoji || '🍽️',
+      exists,
+    });
+  }
+
+  for (const r of data.recipes) {
+    if (!isRecipePayload(r)) continue;
+    const exists = (await findRecipeIdByName(r.name)) != null;
+    items.push({
+      key: `recipe:${r.name}`,
+      kind: 'recipe',
+      name: r.name,
+      emoji: r.emoji || '🍽️',
+      exists,
+      detail: `${r.ingredients.length} ingredientes`,
+    });
+  }
+
+  return items;
+}
+
+export async function importBackupEnvelope(
+  data: BackupPayload,
+  options?: { onlyKeys?: string[] }
+): Promise<ImportSummary> {
+  const only = options?.onlyKeys ? new Set(options.onlyKeys) : null;
   const summary: ImportSummary = {
     kind: 'backup',
     label: 'Copia de seguridad',
@@ -415,6 +460,7 @@ export async function importBackupEnvelope(data: BackupPayload): Promise<ImportS
   const nameToId = new Map<string, number>();
   for (const f of data.foods) {
     if (!isFoodPayload(f)) continue;
+    if (only && !only.has(`food:${f.name}`)) continue;
     const existing = await findFoodIdByName(f.name);
     if (existing != null) {
       nameToId.set(f.name.toLowerCase(), existing);
@@ -429,6 +475,7 @@ export async function importBackupEnvelope(data: BackupPayload): Promise<ImportS
   const existingRecipeNames = (await getRecipes()).map((r) => r.name.toLowerCase());
   for (const r of data.recipes) {
     if (!isRecipePayload(r)) continue;
+    if (only && !only.has(`recipe:${r.name}`)) continue;
     if (existingRecipeNames.includes(r.name.toLowerCase())) {
       summary.skipped += 1;
       continue;

@@ -118,7 +118,7 @@ async function openWebDatabase(uri: string): Promise<OpenResult> {
   }
 }
 
-export async function importWebDatabase(uri: string): Promise<string> {
+export async function readWebDatabasePayload(uri: string): Promise<BackupPayload> {
   const { db, tempFile } = await openWebDatabase(uri);
 
   try {
@@ -169,18 +169,13 @@ export async function importWebDatabase(uri: string): Promise<string> {
       throw new Error('La base de datos no contiene alimentos.');
     }
 
-    const payload: BackupPayload = {
+    return {
       foods: payloadFoods,
       recipes,
       days: [],
       measurements: [],
       profile: null,
     };
-
-    const summary = await importBackupEnvelope(payload);
-    const newOnes = summary.created;
-    const existing = summary.skipped;
-    return `✅ Importación completada: ${newOnes} alimento(s)/receta(s) nuevos, ${existing} ya existían (se omiten).`;
   } finally {
     await db.closeAsync();
     if (tempFile) {
@@ -189,4 +184,11 @@ export async function importWebDatabase(uri: string): Promise<string> {
       await FileSystem.deleteAsync(`${tempFile}-shm`, { idempotent: true }).catch(() => {});
     }
   }
+}
+
+/** Importa directamente (sin previsualización) la BD web completa. */
+export async function importWebDatabase(uri: string): Promise<string> {
+  const payload = await readWebDatabasePayload(uri);
+  const summary = await importBackupEnvelope(payload);
+  return `✅ Importación completada: ${summary.created} alimento(s)/receta(s) nuevos, ${summary.skipped} ya existían (se omiten).`;
 }

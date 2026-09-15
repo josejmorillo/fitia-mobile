@@ -4,16 +4,21 @@ import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-nativ
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FormScrollView } from '@/components/common/FormScrollView';
+import { ImportPreviewModal } from '@/components/common/ImportPreviewModal';
 import { deleteApiKey, getApiKeys, saveApiKey } from '@/services/keys';
 import { exportBackup } from '@/services/backupService';
 import {
+  analyzeBackup,
+  importBackupEnvelope,
   importFromText,
   isSqliteFileName,
   parseImportJson,
   pickImportFile,
   readUriText,
+  type BackupPayload,
+  type ImportPreviewItem,
 } from '@/services/shareService';
-import { importWebDatabase } from '@/services/webDbImport';
+import { readWebDatabasePayload } from '@/services/webDbImport';
 import { colors } from '@/utils/colors';
 
 export default function SettingsScreen() {
@@ -22,6 +27,9 @@ export default function SettingsScreen() {
   const [hasGroq, setHasGroq] = useState(false);
   const [hasMistral, setHasMistral] = useState(false);
   const [keysSaved, setKeysSaved] = useState(false);
+  const [previewItems, setPreviewItems] = useState<ImportPreviewItem[] | null>(null);
+  const [previewPayload, setPreviewPayload] = useState<BackupPayload | null>(null);
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     getApiKeys().then((k) => {
@@ -64,28 +72,48 @@ export default function SettingsScreen() {
       const picked = await pickImportFile();
       if (picked == null) return;
       console.log('[import] archivo elegido:', picked.name, picked.uri.slice(0, 60));
+
+      let payload: BackupPayload;
       if (isSqliteFileName(picked.name)) {
-        const message = await importWebDatabase(picked.uri);
-        Alert.alert('Importación completada', message);
-        return;
+        payload = await readWebDatabasePayload(picked.uri);
+      } else {
+        const text = await readUriText(picked.uri);
+        const envelope = parseImportJson(text);
+        if (envelope.kind !== 'backup') {
+          Alert.alert(
+            'No se pudo importar',
+            'Ese archivo es un alimento o receta. Usa "Importar alimento o receta".'
+          );
+          return;
+        }
+        payload = envelope.data;
       }
-      const text = await readUriText(picked.uri);
-      const envelope = parseImportJson(text);
-      if (envelope.kind !== 'backup') {
-        Alert.alert(
-          'No se pudo importar',
-          'Ese archivo es un alimento o receta. Usa "Importar alimento o receta".'
-        );
-        return;
-      }
-      const message = await importFromText(text);
-      Alert.alert('Importación completada', message);
+
+      const items = await analyzeBackup(payload);
+      setPreviewPayload(payload);
+      setPreviewItems(items);
     } catch (e) {
-      console.error('[import] error importando base de datos:', e);
+      console.error('[import] error analizando la importación:', e);
       Alert.alert(
         'No se pudo importar',
         e instanceof Error ? e.message : 'El archivo no es válido.'
       );
+    }
+  }
+
+  async function handleConfirmImport(keys: string[]) {
+    if (!previewPayload) return;
+    setImporting(true);
+    try {
+      const summary = await importBackupEnvelope(previewPayload, { onlyKeys: keys });
+      setPreviewItems(null);
+      setPreviewPayload(null);
+      Alert.alert('Importación completada', summary.detail ?? '');
+    } catch (e) {
+      console.error('[import] error importando:', e);
+      Alert.alert('No se pudo importar', e instanceof Error ? e.message : 'Error inesperado');
+    } finally {
+      setImporting(false);
     }
   }
 
@@ -227,6 +255,16 @@ export default function SettingsScreen() {
           <Text style={styles.dataBtnGhostText}>Importar alimento o receta</Text>
         </Pressable>
       </FormScrollView>
+
+      <ImportPreviewModal
+        items={previewItems}
+        loading={importing}
+        onClose={() => {
+          setPreviewItems(null);
+          setPreviewPayload(null);
+        }}
+        onConfirm={handleConfirmImport}
+      />
     </SafeAreaView>
   );
 }
