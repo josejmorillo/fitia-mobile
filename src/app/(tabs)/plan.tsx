@@ -151,7 +151,11 @@ export default function PlanScreen() {
     ToastAndroid.show('Alimento copiado al día siguiente', ToastAndroid.SHORT);
   }
 
-  async function handleRepeat(weeks: number, selectedDays: string[]) {
+  async function handleRepeat(
+    weeks: number,
+    selectedDays: string[],
+    mode: 'merge' | 'replace'
+  ) {
     if (repeatMealType == null) return;
     setRepeating(true);
     try {
@@ -160,6 +164,7 @@ export default function PlanScreen() {
         weeks,
         selectedDays,
         mealType: repeatMealType,
+        mode,
       });
       setRepeatMealType(null);
       await reload();

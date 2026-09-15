@@ -316,6 +316,7 @@ export interface RepeatMealOptions {
   weeks: number;
   selectedDays: string[];
   mealType: MealType;
+  mode?: 'merge' | 'replace';
 }
 
 /**
@@ -364,6 +365,12 @@ export async function repeatMeal(options: RepeatMealOptions): Promise<number> {
         [date]
       );
       if (!log) continue;
+      if (options.mode === 'replace') {
+        await db.runAsync('DELETE FROM daily_log_items WHERE daily_log_id = ? AND meal_type = ?', [
+          log.id,
+          options.mealType,
+        ]);
+      }
       for (const item of items) {
         await db.runAsync(
           `INSERT INTO daily_log_items (daily_log_id, meal_type, food_id, recipe_id, amount, consumed, sort_order, source_item_id)

@@ -22,7 +22,7 @@ interface RepeatMealModalProps {
   mealType: MealType;
   loading: boolean;
   onClose: () => void;
-  onRepeat: (weeks: number, selectedDays: string[]) => void;
+  onRepeat: (weeks: number, selectedDays: string[], mode: 'merge' | 'replace') => void;
 }
 
 export function RepeatMealModal({
@@ -34,6 +34,7 @@ export function RepeatMealModal({
 }: RepeatMealModalProps) {
   const [weeks, setWeeks] = useState(1);
   const [selectedDays, setSelectedDays] = useState<string[]>(['MONDAY']);
+  const [mode, setMode] = useState<'merge' | 'replace'>('merge');
 
   function toggleDay(key: string) {
     setSelectedDays((prev) =>
@@ -43,7 +44,7 @@ export function RepeatMealModal({
 
   function handleRepeat() {
     if (selectedDays.length === 0) return;
-    onRepeat(weeks, selectedDays);
+    onRepeat(weeks, selectedDays, mode);
   }
 
   const dayCount = selectedDays.length * weeks;
@@ -57,7 +58,30 @@ export function RepeatMealModal({
           </Text>
           <Text style={styles.subtitle}>
             Se copiarán los alimentos actuales (sin marcar) a los días elegidos durante las
-            próximas semanas, sin borrar lo que ya haya.
+            próximas semanas.
+          </Text>
+
+          <Text style={styles.sectionLabel}>Si ya hay alimentos en esos días</Text>
+          <View style={styles.segmented}>
+            <Pressable
+              style={[styles.segment, mode === 'merge' && styles.segmentActive]}
+              onPress={() => setMode('merge')}>
+              <Text style={[styles.segmentText, mode === 'merge' && styles.segmentTextActive]}>
+                Añadir
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[styles.segment, mode === 'replace' && styles.segmentActive]}
+              onPress={() => setMode('replace')}>
+              <Text style={[styles.segmentText, mode === 'replace' && styles.segmentTextActive]}>
+                Sustituir
+              </Text>
+            </Pressable>
+          </View>
+          <Text style={styles.modeHint}>
+            {mode === 'merge'
+              ? 'Se añaden a lo que ya exista en esos días.'
+              : 'Se borran los alimentos que ya haya en esa comida esos días y se sustituyen.'}
           </Text>
 
           <Text style={styles.sectionLabel}>Semanas</Text>
@@ -145,6 +169,36 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 16,
     marginBottom: 8,
+  },
+  segmented: {
+    flexDirection: 'row',
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    padding: 3,
+    gap: 4,
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  segmentActive: {
+    backgroundColor: colors.primary,
+  },
+  segmentText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  segmentTextActive: {
+    color: '#1A1A1A',
+    fontWeight: '700',
+  },
+  modeHint: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 6,
   },
   chips: {
     flexDirection: 'row',
