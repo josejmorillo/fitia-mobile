@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
-import { useReorderableDrag } from 'react-native-reorderable-list';
+import { useIsActive, useReorderableDrag } from 'react-native-reorderable-list';
 
 import { colors } from '@/utils/colors';
 import type { DailyLogItem } from '@/utils/types';
@@ -26,6 +26,7 @@ export function MealItem({
 }: MealItemProps) {
   const swipeableRef = useRef<Swipeable>(null);
   const drag = useReorderableDrag();
+  const isDragging = useIsActive();
   const food = item.food;
   const recipe = item.recipe;
   if (!food && !recipe) return null;
@@ -43,7 +44,7 @@ export function MealItem({
   }
 
   return (
-    <View style={styles.swipeWrapper}>
+    <View style={[styles.swipeWrapper, isDragging && styles.draggingWrapper]}>
       <Swipeable
         ref={swipeableRef}
         renderLeftActions={() =>
@@ -61,7 +62,11 @@ export function MealItem({
         }
         overshootLeft={false}>
         <Pressable
-          style={[styles.container, !consumed && styles.notConsumed]}
+          style={[
+            styles.container,
+            !consumed && styles.notConsumed,
+            isDragging && styles.draggingContainer,
+          ]}
           onLongPress={drag}
           delayLongPress={200}>
           <Pressable style={styles.checkIcon} onPress={() => onToggle(item.id)} hitSlop={8}>
@@ -122,6 +127,15 @@ const styles = StyleSheet.create({
   swipeWrapper: {
     borderRadius: 10,
     overflow: 'hidden',
+  },
+  draggingWrapper: {
+    transform: [{ scale: 1.02 }],
+    zIndex: 10,
+  },
+  draggingContainer: {
+    borderWidth: 2,
+    borderColor: colors.primary,
+    backgroundColor: '#FFF9DB',
   },
   container: {
     flexDirection: 'row',

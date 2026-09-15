@@ -109,6 +109,7 @@ export function MealSection({
           data={mealItems}
           keyExtractor={(item) => String(item.id)}
           scrollable={false}
+          shouldUpdateActiveItem
           contentContainerStyle={styles.list}
           renderItem={({ item }) => (
             <MealItem
