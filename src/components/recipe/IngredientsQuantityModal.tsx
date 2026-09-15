@@ -1,6 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors } from '@/utils/colors';
@@ -74,7 +84,10 @@ export function IngredientsQuantityModal({
           </Pressable>
         </View>
 
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {items.map((item, index) => {
             const grams = gramsFor(item);
             const macros = grams > 0 ? foodMacros(item.food, grams) : null;
@@ -135,6 +148,7 @@ export function IngredientsQuantityModal({
         <Pressable style={styles.confirmBtn} onPress={handleConfirm}>
           <Text style={styles.confirmText}>Añadir {items.length} a la receta</Text>
         </Pressable>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );
@@ -144,6 +158,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  flex: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',

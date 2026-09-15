@@ -1,6 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { colors } from '@/utils/colors';
 import { foodMacros } from '@/utils/macros';
@@ -46,7 +55,9 @@ export function FoodAmountModal({ food, onClose, onConfirm }: FoodAmountModalPro
 
   return (
     <Modal visible={food != null} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
+      <KeyboardAvoidingView
+        style={styles.backdrop}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.dialog}>
           {food && (
             <>
@@ -124,7 +135,7 @@ export function FoodAmountModal({ food, onClose, onConfirm }: FoodAmountModalPro
             </>
           )}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

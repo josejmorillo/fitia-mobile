@@ -3,7 +3,6 @@ import { useRef, useState } from 'react';
 import {
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -13,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { createFood, getFood, type FoodInput } from '@/services/foodService';
 import { EmojiPickerModal } from '@/components/common/EmojiPickerModal';
+import { FormScrollView } from '@/components/common/FormScrollView';
 import { FoodPickerModal } from '@/components/food/FoodPickerModal';
 import { FoodForm } from '@/components/food/FoodForm';
 import { colors } from '@/utils/colors';
@@ -138,10 +138,7 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: RecipeFormProps) 
 
   return (
     <>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled">
+      <FormScrollView style={styles.container} contentContainerStyle={styles.content}>
         <View style={styles.field}>
           <Text style={styles.label}>Nombre *</Text>
           <TextInput
@@ -230,7 +227,7 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: RecipeFormProps) 
         <Pressable style={styles.saveBtn} onPress={handleSave} disabled={saving}>
           <Text style={styles.saveText}>{saving ? 'Guardando…' : submitLabel}</Text>
         </Pressable>
-      </ScrollView>
+      </FormScrollView>
 
       <FoodPickerModal
         visible={pickerVisible}

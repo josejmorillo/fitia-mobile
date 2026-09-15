@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { FormScrollView } from '@/components/common/FormScrollView';
 import { deleteApiKey, getApiKeys, saveApiKey } from '@/services/keys';
 import { exportBackup } from '@/services/backupService';
 import {
@@ -136,7 +137,7 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <FormScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Ajustes</Text>
 
         <Text style={styles.sectionTitle}>API de IA (opcional)</Text>
@@ -225,7 +226,7 @@ export default function SettingsScreen() {
           <Ionicons name="download-outline" size={18} color={colors.primaryDark} />
           <Text style={styles.dataBtnGhostText}>Importar alimento o receta</Text>
         </Pressable>
-      </ScrollView>
+      </FormScrollView>
     </SafeAreaView>
   );
 }

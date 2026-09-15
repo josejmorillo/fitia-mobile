@@ -2,7 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -60,7 +62,9 @@ export function RecipeAmountModal({ recipe, onClose, onConfirm }: RecipeAmountMo
 
   return (
     <Modal visible={recipe != null} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
+      <KeyboardAvoidingView
+        style={styles.backdrop}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.dialog}>
           {recipe && (
             <>
@@ -144,7 +148,7 @@ export function RecipeAmountModal({ recipe, onClose, onConfirm }: RecipeAmountMo
             </>
           )}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

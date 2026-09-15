@@ -1,7 +1,9 @@
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useState } from 'react';
 import {
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -106,7 +108,9 @@ export function MeasurementModal({ visible, onClose, onSave, initial }: Measurem
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
+      <KeyboardAvoidingView
+        style={styles.backdrop}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.dialog}>
           <View style={styles.header}>
             <Text style={styles.title}>{initial ? 'Editar medición' : 'Nueva medición'}</Text>
@@ -144,7 +148,7 @@ export function MeasurementModal({ visible, onClose, onSave, initial }: Measurem
             </Pressable>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

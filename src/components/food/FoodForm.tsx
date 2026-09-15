@@ -16,6 +16,7 @@ import type { Food, NutritionData } from '@/utils/types';
 import { AiFoodSearchModal } from './AiFoodSearchModal';
 import { BarcodeScannerModal } from './BarcodeScannerModal';
 import { EmojiPickerModal } from '../common/EmojiPickerModal';
+import { FormScrollView } from '../common/FormScrollView';
 
 interface FoodFormProps {
   initial?: Food | null;
@@ -114,10 +115,7 @@ export function FoodForm({ initial, onSubmit, submitLabel }: FoodFormProps) {
 
   return (
     <>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled">
+      <FormScrollView style={styles.container} contentContainerStyle={styles.content}>
         <View style={styles.discoveryRow}>
           <Pressable style={styles.discoveryBtn} onPress={() => setAiVisible(true)}>
             <Ionicons name="sparkles-outline" size={18} color="#1A1A1A" />
@@ -218,7 +216,7 @@ export function FoodForm({ initial, onSubmit, submitLabel }: FoodFormProps) {
       <Pressable style={styles.saveBtn} onPress={handleSave} disabled={saving}>
         <Text style={styles.saveText}>{saving ? 'Guardando…' : submitLabel}</Text>
       </Pressable>
-      </ScrollView>
+      </FormScrollView>
 
       <AiFoodSearchModal
         visible={aiVisible}

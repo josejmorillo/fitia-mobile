@@ -1,5 +1,14 @@
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { colors } from '@/utils/colors';
 import type { DailyLogItem } from '@/utils/types';
@@ -53,7 +62,9 @@ export function AmountModal({ item, onClose, onSave }: AmountModalProps) {
 
   return (
     <Modal visible={item != null} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
+      <KeyboardAvoidingView
+        style={styles.backdrop}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={styles.dialog}>
           <Text style={styles.title}>Cantidad</Text>
           {name ? (
@@ -102,7 +113,7 @@ export function AmountModal({ item, onClose, onSave }: AmountModalProps) {
             </Pressable>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

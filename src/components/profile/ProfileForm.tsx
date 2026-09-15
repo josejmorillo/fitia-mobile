@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { FormScrollView } from '@/components/common/FormScrollView';
 import { getOrCreateProfile, updateProfile } from '@/services/profileService';
 import { colors } from '@/utils/colors';
 import {
@@ -140,10 +141,7 @@ export function ProfileForm() {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled">
+    <FormScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.sectionTitle}>Datos personales</Text>
 
       <Text style={styles.label}>Peso (kg)</Text>
@@ -296,7 +294,7 @@ export function ProfileForm() {
       <Pressable style={styles.saveBtn} onPress={handleSave}>
         <Text style={styles.saveText}>{saved ? 'Guardado ✓' : 'Guardar'}</Text>
       </Pressable>
-    </ScrollView>
+    </FormScrollView>
   );
 }
 
