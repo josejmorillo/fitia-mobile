@@ -282,6 +282,18 @@ export async function deleteItem(itemId: number): Promise<void> {
   await db.runAsync('DELETE FROM daily_log_items WHERE id = ?', [itemId]);
 }
 
+export async function setItemOrder(orderedIds: number[]): Promise<void> {
+  const db = await getDatabase();
+  await db.withTransactionAsync(async () => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await db.runAsync('UPDATE daily_log_items SET sort_order = ? WHERE id = ?', [
+        i,
+        orderedIds[i],
+      ]);
+    }
+  });
+}
+
 export async function copyItemToDate(itemId: number, targetDate: string): Promise<void> {
   const db = await getDatabase();
   const source = await db.getFirstAsync<{

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
+import { useReorderableDrag } from 'react-native-reorderable-list';
 
 import { colors } from '@/utils/colors';
 import type { DailyLogItem } from '@/utils/types';
@@ -24,6 +25,7 @@ export function MealItem({
   onCopy,
 }: MealItemProps) {
   const swipeableRef = useRef<Swipeable>(null);
+  const drag = useReorderableDrag();
   const food = item.food;
   const recipe = item.recipe;
   if (!food && !recipe) return null;
@@ -58,7 +60,10 @@ export function MealItem({
           ) : null
         }
         overshootLeft={false}>
-        <View style={[styles.container, !consumed && styles.notConsumed]}>
+        <Pressable
+          style={[styles.container, !consumed && styles.notConsumed]}
+          onLongPress={drag}
+          delayLongPress={200}>
           <Pressable style={styles.checkIcon} onPress={() => onToggle(item.id)} hitSlop={8}>
             <Ionicons
               name={consumed ? 'checkmark-circle' : 'ellipse-outline'}
@@ -107,7 +112,7 @@ export function MealItem({
               </Pressable>
             </View>
           </View>
-        </View>
+        </Pressable>
       </Swipeable>
     </View>
   );

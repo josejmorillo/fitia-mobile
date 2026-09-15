@@ -1,5 +1,6 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { NestedReorderableList } from 'react-native-reorderable-list';
 
 import { colors } from '@/utils/colors';
 import { MEAL_LABELS } from '@/utils/constants';
@@ -19,6 +20,7 @@ interface MealSectionProps {
   onEdit?: (foodId: number) => void;
   onCopy?: (item: DailyLogItem) => void;
   onRepeat?: (mealType: MealType) => void;
+  onReorder?: (mealType: MealType, orderedIds: number[]) => void;
 }
 
 interface MiniMacro {
@@ -41,6 +43,7 @@ export function MealSection({
   onEdit,
   onCopy,
   onRepeat,
+  onReorder,
 }: MealSectionProps) {
   const mealItems = items.filter((i) => i.mealType === mealType);
   const mealMacros = mealItems.filter((i) => i.consumed).reduce(
@@ -102,10 +105,13 @@ export function MealSection({
           </Text>
         </Pressable>
       ) : (
-        <View style={styles.list}>
-          {mealItems.map((item) => (
+        <NestedReorderableList
+          data={mealItems}
+          keyExtractor={(item) => String(item.id)}
+          scrollable={false}
+          contentContainerStyle={styles.list}
+          renderItem={({ item }) => (
             <MealItem
-              key={item.id}
               item={item}
               onDelete={onDelete}
               onToggle={onToggle}
@@ -113,8 +119,17 @@ export function MealSection({
               onEdit={onEdit}
               onCopy={onCopy}
             />
-          ))}
-        </View>
+          )}
+          onReorder={({ from, to }) => {
+            const next = [...mealItems];
+            const [moved] = next.splice(from, 1);
+            next.splice(to, 0, moved);
+            onReorder?.(
+              mealType,
+              next.map((i) => i.id)
+            );
+          }}
+        />
       )}
     </View>
   );

@@ -1,6 +1,7 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, ToastAndroid, View } from 'react-native';
+import { StyleSheet, ToastAndroid, View } from 'react-native';
+import { ScrollViewContainer } from 'react-native-reorderable-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DaySelector } from '@/components/calendar/DaySelector';
@@ -21,6 +22,7 @@ import {
   getDailyLogItems,
   getOrCreateDailyLog,
   repeatMeal,
+  setItemOrder,
   toggleItemConsumed,
   updateItemAmount,
 } from '@/services/dailyLogService';
@@ -145,6 +147,11 @@ export default function PlanScreen() {
     await reload();
   }
 
+  async function handleReorder(_mealType: MealType, orderedIds: number[]) {
+    await setItemOrder(orderedIds);
+    await reload();
+  }
+
   async function handleCopy(item: DailyLogItem) {
     await copyItemToDate(item.id, addDays(selectedDate, 1));
     await reload();
@@ -193,7 +200,7 @@ export default function PlanScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <DaySelector selectedDate={selectedDate} onSelect={setSelectedDate} summaries={summaries} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollViewContainer contentContainerStyle={styles.scrollContent}>
         <View style={styles.summaryCard}>
           <MacroCircle caloriesConsumed={totalMacros.calories} caloriesGoal={goalCalories} />
           <View style={styles.bars}>
@@ -235,9 +242,10 @@ export default function PlanScreen() {
             }
             onCopy={handleCopy}
             onRepeat={setRepeatMealType}
+            onReorder={handleReorder}
           />
         ))}
-      </ScrollView>
+      </ScrollViewContainer>
 
       <FoodPickerModal
         visible={pickerMeal != null}
