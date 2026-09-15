@@ -76,11 +76,11 @@ export function QuantitySheet({
           </Pressable>
 
           <Text style={styles.emoji}>{emoji}</Text>
-          <Text style={styles.name} numberOfLines={1}>
+          <Text style={styles.name} numberOfLines={2}>
             {name}
           </Text>
           {subtitle ? (
-            <Text style={styles.subtitle} numberOfLines={1}>
+            <Text style={styles.subtitle} numberOfLines={2}>
               {subtitle}
             </Text>
           ) : null}

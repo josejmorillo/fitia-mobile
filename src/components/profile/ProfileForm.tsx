@@ -59,6 +59,32 @@ function ChipGroup<T extends string>({
   );
 }
 
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <View style={styles.cell}>
+      <Text style={styles.label}>{label}</Text>
+      <TextInput
+        style={styles.input}
+        value={value}
+        onChangeText={onChange}
+        keyboardType="numeric"
+        placeholder={placeholder ?? '0'}
+        placeholderTextColor={colors.textTertiary}
+      />
+    </View>
+  );
+}
+
 function parseNum(s: string): number | null {
   const n = parseFloat(s.replace(',', '.'));
   return isNaN(n) ? null : n;
@@ -143,153 +169,100 @@ export function ProfileForm() {
   return (
     <FormScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.sectionTitle}>Datos personales</Text>
-
-      <Text style={styles.label}>Peso (kg)</Text>
-      <TextInput
-        style={styles.input}
-        value={weight}
-        onChangeText={setWeight}
-        keyboardType="numeric"
-        placeholder="Ej. 75"
-        placeholderTextColor={colors.textTertiary}
-      />
-
-      <Text style={styles.label}>Altura (cm)</Text>
-      <TextInput
-        style={styles.input}
-        value={height}
-        onChangeText={setHeight}
-        keyboardType="numeric"
-        placeholder="Ej. 175"
-        placeholderTextColor={colors.textTertiary}
-      />
-
-      <Text style={styles.label}>Edad</Text>
-      <TextInput
-        style={styles.input}
-        value={age}
-        onChangeText={setAge}
-        keyboardType="numeric"
-        placeholder="Ej. 30"
-        placeholderTextColor={colors.textTertiary}
-      />
-
-      <Text style={styles.label}>Sexo</Text>
-      <ChipGroup options={GENDER_OPTIONS} value={gender} onChange={setGender} />
+      <View style={styles.card}>
+        <View style={styles.row}>
+          <Field label="Peso (kg)" value={weight} onChange={setWeight} placeholder="75" />
+          <Field label="Altura (cm)" value={height} onChange={setHeight} placeholder="175" />
+        </View>
+        <View style={styles.row}>
+          <Field label="Edad" value={age} onChange={setAge} placeholder="30" />
+          <View style={styles.cell} />
+        </View>
+        <Text style={styles.label}>Sexo</Text>
+        <ChipGroup options={GENDER_OPTIONS} value={gender} onChange={setGender} />
+      </View>
 
       <Text style={styles.sectionTitle}>Objetivo</Text>
-      <ChipGroup options={GOAL_OPTIONS} value={goalType} onChange={setGoalType} />
+      <View style={styles.card}>
+        <Text style={styles.label}>Tipo</Text>
+        <ChipGroup options={GOAL_OPTIONS} value={goalType} onChange={setGoalType} />
+        <Text style={styles.label}>Nivel de actividad</Text>
+        <ChipGroup options={ACTIVITY_OPTIONS} value={activity} onChange={setActivity} />
+      </View>
 
-      <Text style={styles.label}>Nivel de actividad</Text>
-      <ChipGroup options={ACTIVITY_OPTIONS} value={activity} onChange={setActivity} />
+      {estimate ? (
+        <>
+          <Text style={styles.sectionTitle}>Estimación</Text>
+          <View style={styles.card}>
+            <View style={styles.statRow}>
+              <View style={styles.stat}>
+                <Text style={styles.statLabel}>Metabolismo (BMR)</Text>
+                <Text style={styles.statValue}>{estimate.bmr} kcal</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statLabel}>Gasto diario (TDEE)</Text>
+                <Text style={styles.statValue}>{estimate.tdee} kcal</Text>
+              </View>
+            </View>
 
-      {estimate && (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Estimación con tus datos</Text>
-          <View style={styles.estimateGrid}>
-            <View style={styles.estimateCell}>
-              <Text style={styles.estimateLabel}>Metabolismo (BMR)</Text>
-              <Text style={styles.estimateValue}>{estimate.bmr} kcal</Text>
+            <View style={styles.targetRow}>
+              <Text style={styles.targetLabel}>Calorías objetivo</Text>
+              <Text style={styles.targetValue}>{estimate.targetCalories} kcal</Text>
             </View>
-            <View style={styles.estimateCell}>
-              <Text style={styles.estimateLabel}>Gasto diario (TDEE)</Text>
-              <Text style={styles.estimateValue}>{estimate.tdee} kcal</Text>
+
+            <View style={styles.statRow}>
+              <View style={styles.stat}>
+                <Text style={styles.statLabel}>Proteína</Text>
+                <Text style={styles.statValue}>{estimate.protein} g</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statLabel}>Carbos</Text>
+                <Text style={styles.statValue}>{estimate.carbs} g</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statLabel}>Grasa</Text>
+                <Text style={styles.statValue}>{estimate.fat} g</Text>
+              </View>
             </View>
-            <View style={[styles.estimateCell, styles.estimateCellTarget]}>
-              <Text style={styles.estimateLabel}>Calorías objetivo</Text>
-              <Text style={styles.estimateTargetValue}>{estimate.targetCalories} kcal</Text>
-            </View>
-            <View style={styles.estimateCell}>
-              <Text style={styles.estimateLabel}>Proteína</Text>
-              <Text style={styles.estimateValue}>{estimate.protein} g</Text>
-            </View>
-            <View style={styles.estimateCell}>
-              <Text style={styles.estimateLabel}>Carbos</Text>
-              <Text style={styles.estimateValue}>{estimate.carbs} g</Text>
-            </View>
-            <View style={styles.estimateCell}>
-              <Text style={styles.estimateLabel}>Grasa</Text>
-              <Text style={styles.estimateValue}>{estimate.fat} g</Text>
-            </View>
+
+            {estimate.deficitSurplus !== 0 && (
+              <Text style={styles.estimateNote}>
+                {estimate.deficitSurplus < 0
+                  ? `Déficit de ${Math.abs(estimate.deficitSurplus)} kcal para definir`
+                  : `Superávit de ${estimate.deficitSurplus} kcal para volumen`}
+              </Text>
+            )}
+            {estimate.warnings.map((w) => (
+              <Text key={w} style={styles.estimateWarn}>
+                ⚠️ {w}
+              </Text>
+            ))}
           </View>
-          {estimate.deficitSurplus !== 0 && (
-            <Text style={styles.estimateNote}>
-              {estimate.deficitSurplus < 0
-                ? `Déficit de ${Math.abs(estimate.deficitSurplus)} kcal para definir`
-                : `Superávit de ${estimate.deficitSurplus} kcal para volumen`}
-            </Text>
-          )}
-          {estimate.warnings.map((w) => (
-            <Text key={w} style={styles.estimateWarn}>
-              ⚠️ {w}
-            </Text>
-          ))}
-        </View>
-      )}
+        </>
+      ) : null}
 
-      <Text style={styles.sectionTitle}>Metas (kcal y macros)</Text>
-      <Text style={styles.hint}>
-        Tus objetivos actuales. Puedes editarlos a mano o pulsar «Usar estimación» para copiar el
-        cálculo.
-      </Text>
-
-      <View style={styles.goalRow}>
-        <View style={styles.goalCell}>
-          <Text style={styles.label}>Calorías (kcal)</Text>
-          <TextInput
-            style={styles.input}
-            value={kcal}
-            onChangeText={setKcal}
-            keyboardType="numeric"
-            placeholder="0"
-            placeholderTextColor={colors.textTertiary}
-          />
-        </View>
-        <View style={styles.goalCell}>
-          <Text style={styles.label}>Proteína (g)</Text>
-          <TextInput
-            style={styles.input}
-            value={protein}
-            onChangeText={setProtein}
-            keyboardType="numeric"
-            placeholder="0"
-            placeholderTextColor={colors.textTertiary}
-          />
-        </View>
-      </View>
-      <View style={styles.goalRow}>
-        <View style={styles.goalCell}>
-          <Text style={styles.label}>Carbos (g)</Text>
-          <TextInput
-            style={styles.input}
-            value={carbs}
-            onChangeText={setCarbs}
-            keyboardType="numeric"
-            placeholder="0"
-            placeholderTextColor={colors.textTertiary}
-          />
-        </View>
-        <View style={styles.goalCell}>
-          <Text style={styles.label}>Grasa (g)</Text>
-          <TextInput
-            style={styles.input}
-            value={fat}
-            onChangeText={setFat}
-            keyboardType="numeric"
-            placeholder="0"
-            placeholderTextColor={colors.textTertiary}
-          />
-        </View>
-      </View>
-
-      <Pressable
-        style={[styles.secondaryBtn, !estimate && styles.btnDisabled]}
-        onPress={applyEstimate}
-        disabled={!estimate}>
-        <Text style={styles.secondaryText}>
-          {estimate ? `Usar estimación (${estimate.targetCalories} kcal)` : 'Usar estimación'}
+      <Text style={styles.sectionTitle}>Tus metas</Text>
+      <View style={styles.card}>
+        <Text style={styles.help}>
+          Tus objetivos actuales. Puedes editarlos a mano o copiar la estimación.
         </Text>
-      </Pressable>
+        <View style={styles.row}>
+          <Field label="Calorías (kcal)" value={kcal} onChange={setKcal} />
+          <Field label="Proteína (g)" value={protein} onChange={setProtein} />
+        </View>
+        <View style={styles.row}>
+          <Field label="Carbos (g)" value={carbs} onChange={setCarbs} />
+          <Field label="Grasa (g)" value={fat} onChange={setFat} />
+        </View>
+        <Pressable
+          style={[styles.secondaryBtn, !estimate && styles.btnDisabled]}
+          onPress={applyEstimate}
+          disabled={!estimate}>
+          <Text style={styles.secondaryText}>
+            {estimate ? `Usar estimación (${estimate.targetCalories} kcal)` : 'Usar estimación'}
+          </Text>
+        </Pressable>
+      </View>
 
       <Pressable style={styles.saveBtn} onPress={handleSave}>
         <Text style={styles.saveText}>{saved ? 'Guardado ✓' : 'Guardar'}</Text>
@@ -311,21 +284,34 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: colors.text,
-    marginTop: 12,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    padding: 14,
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 10,
     marginBottom: 10,
   },
+  cell: {
+    flex: 1,
+  },
   label: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: colors.textSecondary,
     marginBottom: 6,
-    marginTop: 12,
+    marginTop: 4,
   },
-  hint: {
+  help: {
     fontSize: 12,
     color: colors.textSecondary,
     lineHeight: 17,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   input: {
     borderWidth: 1,
@@ -335,7 +321,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 15,
     color: colors.text,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
   },
   chips: {
     flexDirection: 'row',
@@ -346,7 +332,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 18,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -362,65 +348,56 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     fontWeight: '700',
   },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 14,
-    marginTop: 14,
-    gap: 8,
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  estimateGrid: {
+  statRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
+    marginBottom: 8,
   },
-  estimateCell: {
-    width: '48%',
+  stat: {
+    flex: 1,
     backgroundColor: colors.background,
     borderRadius: 10,
     padding: 10,
     gap: 2,
   },
-  estimateCellTarget: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.primary,
-  },
-  estimateLabel: {
-    fontSize: 12,
+  statLabel: {
+    fontSize: 11,
     color: colors.textSecondary,
   },
-  estimateValue: {
+  statValue: {
     fontSize: 15,
     fontWeight: '700',
     color: colors.text,
   },
-  estimateTargetValue: {
-    fontSize: 18,
+  targetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  targetLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  targetValue: {
+    fontSize: 17,
     fontWeight: '800',
     color: '#1A1A1A',
   },
   estimateNote: {
     fontSize: 12,
     color: colors.textSecondary,
+    marginTop: 2,
   },
   estimateWarn: {
     fontSize: 12,
     color: '#B26A00',
-  },
-  goalRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  goalCell: {
-    flex: 1,
+    marginTop: 2,
   },
   secondaryBtn: {
     borderWidth: 1,
@@ -428,7 +405,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 6,
   },
   secondaryText: {
     color: colors.primaryDark,
@@ -443,7 +420,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 16,
   },
   saveText: {
     color: '#1A1A1A',

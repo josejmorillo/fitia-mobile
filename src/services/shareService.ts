@@ -453,7 +453,7 @@ export async function analyzeBackup(data: BackupPayload): Promise<ImportPreviewI
     });
   }
 
-  return items;
+  return items.sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
 }
 
 export async function importBackupEnvelope(

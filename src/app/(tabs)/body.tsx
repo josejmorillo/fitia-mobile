@@ -35,7 +35,7 @@ export default function BodyScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editing, setEditing] = useState<BodyMeasurement | null>(null);
   const [selected, setSelected] = useState<Selection>('weight');
-  const [tab, setTab] = useState<'progreso' | 'perfil'>('progreso');
+  const [tab, setTab] = useState<'progreso' | 'objetivo'>('progreso');
 
   useFocusEffect(
     useCallback(() => {
@@ -127,15 +127,15 @@ export default function BodyScreen() {
           </Text>
         </Pressable>
         <Pressable
-          style={[styles.segment, tab === 'perfil' && styles.segmentActive]}
-          onPress={() => setTab('perfil')}>
-          <Text style={[styles.segmentText, tab === 'perfil' && styles.segmentTextActive]}>
-            Perfil
+          style={[styles.segment, tab === 'objetivo' && styles.segmentActive]}
+          onPress={() => setTab('objetivo')}>
+          <Text style={[styles.segmentText, tab === 'objetivo' && styles.segmentTextActive]}>
+            Objetivo
           </Text>
         </Pressable>
       </View>
 
-      {tab === 'perfil' ? (
+      {tab === 'objetivo' ? (
         <ProfileForm />
       ) : (
         <>
