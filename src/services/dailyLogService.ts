@@ -333,11 +333,11 @@ export interface RepeatMealOptions {
 
 /**
  * Copia los alimentos de una comida del día origen a los días de la semana
- * elegidos durante las próximas `weeks` semanas. Los alimentos se añaden a lo
- * que ya exista (merge) y llegan sin marcar (consumed = 0).
- * Devuelve el número de días destino afectados.
+ * elegidos durante las próximas `weeks` semanas. Se copian todos los alimentos
+ * (marcados o no) y en los días destino llegan sin marcar (consumed = 0).
+ * Devuelve las fechas destino afectadas (ordenadas).
  */
-export async function repeatMeal(options: RepeatMealOptions): Promise<number> {
+export async function repeatMeal(options: RepeatMealOptions): Promise<string[]> {
   const db = await getDatabase();
 
   const sourceItems = await db.getAllAsync<{
@@ -354,7 +354,7 @@ export async function repeatMeal(options: RepeatMealOptions): Promise<number> {
     [options.sourceDate, options.mealType]
   );
   const items = sourceItems.filter((i) => i.foodId != null || i.recipeId != null);
-  if (items.length === 0) return 0;
+  if (items.length === 0) return [];
 
   const targets = new Set<string>();
   for (let w = 0; w < options.weeks; w++) {
@@ -367,7 +367,7 @@ export async function repeatMeal(options: RepeatMealOptions): Promise<number> {
       targets.add(addDays(windowStart, delta));
     }
   }
-  if (targets.size === 0) return 0;
+  if (targets.size === 0) return [];
 
   await db.withTransactionAsync(async () => {
     for (const date of targets) {
@@ -393,5 +393,5 @@ export async function repeatMeal(options: RepeatMealOptions): Promise<number> {
     }
   });
 
-  return targets.size;
+  return [...targets].sort();
 }

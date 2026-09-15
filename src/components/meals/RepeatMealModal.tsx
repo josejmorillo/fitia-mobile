@@ -57,8 +57,8 @@ export function RepeatMealModal({
             Repetir {MEAL_LABELS[mealType].toLowerCase()} a otros días
           </Text>
           <Text style={styles.subtitle}>
-            Se copiarán los alimentos actuales (sin marcar) a los días elegidos durante las
-            próximas semanas.
+            Se copiarán todos los alimentos de esta comida (marcados o no) a los días elegidos
+            durante las próximas semanas. En los días destino llegarán sin marcar.
           </Text>
 
           <Text style={styles.sectionLabel}>Si ya hay alimentos en esos días</Text>

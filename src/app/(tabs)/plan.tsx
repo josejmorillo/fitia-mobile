@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { StyleSheet, ToastAndroid, View } from 'react-native';
+import { Alert, StyleSheet, ToastAndroid, View } from 'react-native';
 import { ScrollViewContainer } from 'react-native-reorderable-list';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -166,7 +166,7 @@ export default function PlanScreen() {
     if (repeatMealType == null) return;
     setRepeating(true);
     try {
-      const affected = await repeatMeal({
+      const dates = await repeatMeal({
         sourceDate: selectedDate,
         weeks,
         selectedDays,
@@ -174,13 +174,18 @@ export default function PlanScreen() {
         mode,
       });
       setRepeatMealType(null);
-      await reload();
-      ToastAndroid.show(
-        affected > 0
-          ? `Comida copiada a ${affected} ${affected === 1 ? 'día' : 'días'}`
-          : 'Esa comida no tiene alimentos todavía',
-        ToastAndroid.SHORT
-      );
+      if (dates.length > 0) {
+        setSelectedDate(dates[0]);
+        ToastAndroid.show(
+          `Comida copiada a ${dates.length} ${dates.length === 1 ? 'día' : 'días'}`,
+          ToastAndroid.SHORT
+        );
+      } else {
+        ToastAndroid.show('Esa comida no tiene alimentos todavía', ToastAndroid.SHORT);
+      }
+    } catch (e) {
+      console.error('[repeat] error:', e);
+      Alert.alert('No se pudo repetir', e instanceof Error ? e.message : 'Error inesperado');
     } finally {
       setRepeating(false);
     }
