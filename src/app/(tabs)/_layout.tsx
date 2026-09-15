@@ -32,9 +32,9 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="body"
         options={{
-          title: 'Cuerpo',
+          title: 'Perfil',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="body" size={size} color={color} />
+            <Ionicons name="person" size={size} color={color} />
           ),
         }}
       />

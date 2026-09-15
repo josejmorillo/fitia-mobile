@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MeasurementModal } from '@/components/progress/MeasurementModal';
 import { ProgressChart, type ChartSeries } from '@/components/progress/ProgressChart';
+import { ProfileForm } from '@/components/profile/ProfileForm';
 import {
   addMeasurement,
   deleteMeasurement,
@@ -34,6 +35,7 @@ export default function BodyScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editing, setEditing] = useState<BodyMeasurement | null>(null);
   const [selected, setSelected] = useState<Selection>('weight');
+  const [tab, setTab] = useState<'progreso' | 'perfil'>('progreso');
 
   useFocusEffect(
     useCallback(() => {
@@ -114,9 +116,30 @@ export default function BodyScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <Text style={styles.title}>Cuerpo</Text>
+      <Text style={styles.title}>Perfil</Text>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <View style={styles.segmented}>
+        <Pressable
+          style={[styles.segment, tab === 'progreso' && styles.segmentActive]}
+          onPress={() => setTab('progreso')}>
+          <Text style={[styles.segmentText, tab === 'progreso' && styles.segmentTextActive]}>
+            Progreso
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.segment, tab === 'perfil' && styles.segmentActive]}
+          onPress={() => setTab('perfil')}>
+          <Text style={[styles.segmentText, tab === 'perfil' && styles.segmentTextActive]}>
+            Perfil
+          </Text>
+        </Pressable>
+      </View>
+
+      {tab === 'perfil' ? (
+        <ProfileForm />
+      ) : (
+        <>
+          <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Evolución · {titleLabel}</Text>
 
@@ -197,18 +220,20 @@ export default function BodyScreen() {
             </View>
           ))
         )}
-      </ScrollView>
+          </ScrollView>
 
-      <Pressable style={styles.fab} onPress={openNew}>
-        <Ionicons name="add" size={28} color="#1A1A1A" />
-      </Pressable>
+          <Pressable style={styles.fab} onPress={openNew}>
+            <Ionicons name="add" size={28} color="#1A1A1A" />
+          </Pressable>
 
-      <MeasurementModal
-        visible={modalVisible}
-        initial={editing}
-        onClose={() => setModalVisible(false)}
-        onSave={handleSave}
-      />
+          <MeasurementModal
+            visible={modalVisible}
+            initial={editing}
+            onClose={() => setModalVisible(false)}
+            onSave={handleSave}
+          />
+        </>
+      )}
     </SafeAreaView>
   );
 }
@@ -225,6 +250,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 4,
+  },
+  segmented: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 8,
+    padding: 4,
+    gap: 4,
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  segmentActive: {
+    backgroundColor: colors.primary,
+  },
+  segmentText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  segmentTextActive: {
+    color: '#1A1A1A',
+    fontWeight: '700',
   },
   scrollContent: {
     padding: 16,
