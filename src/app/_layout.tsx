@@ -1,10 +1,14 @@
 import { Stack } from 'expo-router';
 import { useEffect, useRef } from 'react';
-import { Alert, AppState, Linking } from 'react-native';
+import { Alert, AppState, Linking, LogBox } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { importIncomingUri, takePendingIncomingUri } from '@/services/incomingFile';
 import { tryImportIncomingShare } from '@/services/shareService';
+
+// Las listas de reorder (react-native-reorderable-list) se anidan a propósito
+// dentro del ScrollView del plan; el aviso de RN no aplica a este patrón.
+LogBox.ignoreLogs(['VirtualizedLists should never be nested']);
 
 export default function RootLayout() {
   const busy = useRef(false);
