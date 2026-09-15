@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors } from '@/utils/colors';
 import { foodMacros } from '@/utils/macros';
+import { useKeyboardHeight } from '@/utils/useKeyboardHeight';
 import type { Food } from '@/utils/types';
 
 interface DraftItem {
@@ -34,6 +35,7 @@ export function IngredientsQuantityModal({
   onClose,
   onConfirm,
 }: IngredientsQuantityModalProps) {
+  const keyboardHeight = useKeyboardHeight();
   const [items, setItems] = useState<DraftItem[]>([]);
   const [wasVisible, setWasVisible] = useState(false);
 
@@ -85,8 +87,13 @@ export function IngredientsQuantityModal({
         </View>
 
         <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          style={[
+            styles.flex,
+            Platform.OS === 'android' && keyboardHeight > 0
+              ? { paddingBottom: keyboardHeight }
+              : null,
+          ]}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           {items.map((item, index) => {
             const grams = gramsFor(item);

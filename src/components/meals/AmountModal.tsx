@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import { colors } from '@/utils/colors';
+import { useKeyboardHeight } from '@/utils/useKeyboardHeight';
 import type { DailyLogItem } from '@/utils/types';
 
 interface AmountModalProps {
@@ -26,6 +27,7 @@ function capitalize(s: string): string {
 }
 
 export function AmountModal({ item, onClose, onSave }: AmountModalProps) {
+  const keyboardHeight = useKeyboardHeight();
   const recipe = item?.recipe;
   const food = item?.food;
   const servingGrams = recipe?.servingGrams ?? food?.servingAmount ?? null;
@@ -63,8 +65,13 @@ export function AmountModal({ item, onClose, onSave }: AmountModalProps) {
   return (
     <Modal visible={item != null} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView
-        style={styles.backdrop}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        style={[
+          styles.backdrop,
+          Platform.OS === 'android' && keyboardHeight > 0
+            ? { paddingBottom: keyboardHeight }
+            : null,
+        ]}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.dialog}>
           <Text style={styles.title}>Cantidad</Text>
           {name ? (

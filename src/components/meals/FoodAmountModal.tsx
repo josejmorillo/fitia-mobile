@@ -13,6 +13,7 @@ import {
 
 import { colors } from '@/utils/colors';
 import { foodMacros } from '@/utils/macros';
+import { useKeyboardHeight } from '@/utils/useKeyboardHeight';
 import type { Food } from '@/utils/types';
 
 interface FoodAmountModalProps {
@@ -28,6 +29,7 @@ function capitalize(s: string): string {
 }
 
 export function FoodAmountModal({ food, onClose, onConfirm }: FoodAmountModalProps) {
+  const keyboardHeight = useKeyboardHeight();
   const servingGrams = food?.servingAmount ?? null;
   const unitLabel = food?.servingName ? capitalize(food.servingName) : 'Unidades';
 
@@ -56,8 +58,13 @@ export function FoodAmountModal({ food, onClose, onConfirm }: FoodAmountModalPro
   return (
     <Modal visible={food != null} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView
-        style={styles.backdrop}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        style={[
+          styles.backdrop,
+          Platform.OS === 'android' && keyboardHeight > 0
+            ? { paddingBottom: keyboardHeight }
+            : null,
+        ]}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.dialog}>
           {food && (
             <>

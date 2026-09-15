@@ -14,6 +14,7 @@ import {
 
 import { colors } from '@/utils/colors';
 import { formatDateFull, parseDateString, todayString, toDateString } from '@/utils/dates';
+import { useKeyboardHeight } from '@/utils/useKeyboardHeight';
 import type { BodyMeasurement } from '@/utils/types';
 
 type MeasurementInput = Omit<BodyMeasurement, 'id'>;
@@ -52,6 +53,7 @@ function Field({
 }
 
 export function MeasurementModal({ visible, onClose, onSave, initial }: MeasurementModalProps) {
+  const keyboardHeight = useKeyboardHeight();
   const [date, setDate] = useState(todayString());
   const [weight, setWeight] = useState('');
   const [waist, setWaist] = useState('');
@@ -109,8 +111,13 @@ export function MeasurementModal({ visible, onClose, onSave, initial }: Measurem
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView
-        style={styles.backdrop}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        style={[
+          styles.backdrop,
+          Platform.OS === 'android' && keyboardHeight > 0
+            ? { paddingBottom: keyboardHeight }
+            : null,
+        ]}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.dialog}>
           <View style={styles.header}>
             <Text style={styles.title}>{initial ? 'Editar medición' : 'Nueva medición'}</Text>

@@ -15,6 +15,7 @@ import {
 import { getRecipeIngredients } from '@/services/recipeService';
 import { colors } from '@/utils/colors';
 import { ingredientTotals, recipeMacros, type IngredientTotals } from '@/utils/macros';
+import { useKeyboardHeight } from '@/utils/useKeyboardHeight';
 import type { Recipe } from '@/utils/types';
 
 interface RecipeAmountModalProps {
@@ -26,6 +27,7 @@ interface RecipeAmountModalProps {
 type Unit = 'g' | 'raciones';
 
 export function RecipeAmountModal({ recipe, onClose, onConfirm }: RecipeAmountModalProps) {
+  const keyboardHeight = useKeyboardHeight();
   const [totals, setTotals] = useState<IngredientTotals | null>(null);
   const [unit, setUnit] = useState<Unit>('g');
   const [amount, setAmount] = useState('100');
@@ -63,8 +65,13 @@ export function RecipeAmountModal({ recipe, onClose, onConfirm }: RecipeAmountMo
   return (
     <Modal visible={recipe != null} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView
-        style={styles.backdrop}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        style={[
+          styles.backdrop,
+          Platform.OS === 'android' && keyboardHeight > 0
+            ? { paddingBottom: keyboardHeight }
+            : null,
+        ]}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.dialog}>
           {recipe && (
             <>
