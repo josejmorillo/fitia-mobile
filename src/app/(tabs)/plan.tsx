@@ -8,6 +8,7 @@ import { DaySelector } from '@/components/calendar/DaySelector';
 import { FoodPickerModal } from '@/components/food/FoodPickerModal';
 import { MacroBar } from '@/components/macros/MacroBar';
 import { MacroCircle } from '@/components/macros/MacroCircle';
+import { RationBar } from '@/components/macros/RationBar';
 import { AmountModal } from '@/components/meals/AmountModal';
 import { FoodAmountModal } from '@/components/meals/FoodAmountModal';
 import { MealSection } from '@/components/meals/MealSection';
@@ -31,6 +32,7 @@ import { colors } from '@/utils/colors';
 import { MEAL_TYPES } from '@/utils/constants';
 import { addDays, todayString } from '@/utils/dates';
 import { sumMacros } from '@/utils/macros';
+import { calcCarbRations, formatRations } from '@/utils/rations';
 import type { DailyLogItem, Food, MealType, Recipe, UserProfile } from '@/utils/types';
 
 export default function PlanScreen() {
@@ -194,6 +196,12 @@ export default function PlanScreen() {
   const goalProtein = profile?.goalProtein ?? 0;
   const goalCarbs = profile?.goalCarbs ?? 0;
   const goalFat = profile?.goalFat ?? 0;
+  const showRations = profile?.diabetesModeEnabled ?? false;
+  const gramsPerRation = profile?.carbRationGrams ?? 10;
+  const dayRation =
+    showRations && gramsPerRation > 0
+      ? formatRations(calcCarbRations(totalMacros.carbs, gramsPerRation))
+      : null;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -221,6 +229,7 @@ export default function PlanScreen() {
               goal={goalFat}
               color={colors.fat}
             />
+            {dayRation != null && <RationBar ration={dayRation} />}
           </View>
         </View>
 
@@ -242,6 +251,8 @@ export default function PlanScreen() {
             onCopy={handleCopy}
             onRepeat={setRepeatMealType}
             onReorder={handleReorder}
+            showRations={showRations}
+            gramsPerRation={gramsPerRation}
           />
         ))}
       </ScrollViewContainer>
@@ -256,6 +267,8 @@ export default function PlanScreen() {
         item={amountItem}
         onClose={() => setAmountItem(null)}
         onSave={handleAmountSave}
+        showRations={showRations}
+        gramsPerRation={gramsPerRation}
       />
       <RepeatMealModal
         visible={repeatMealType != null}
@@ -268,11 +281,15 @@ export default function PlanScreen() {
         recipe={addRecipe?.recipe ?? null}
         onClose={() => setAddRecipe(null)}
         onConfirm={handleAddRecipeGrams}
+        showRations={showRations}
+        gramsPerRation={gramsPerRation}
       />
       <FoodAmountModal
         food={addFood?.food ?? null}
         onClose={() => setAddFood(null)}
         onConfirm={handleAddFoodGrams}
+        showRations={showRations}
+        gramsPerRation={gramsPerRation}
       />
     </SafeAreaView>
   );

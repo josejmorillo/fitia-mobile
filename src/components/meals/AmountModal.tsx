@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { scaleMacros } from '@/utils/macros';
 import type { DailyLogItem } from '@/utils/types';
 import { QuantitySheet } from './QuantitySheet';
 
@@ -7,6 +8,8 @@ interface AmountModalProps {
   item: DailyLogItem | null;
   onClose: () => void;
   onSave: (itemId: number, amount: number) => void;
+  showRations?: boolean;
+  gramsPerRation?: number;
 }
 
 type Unit = 'units' | 'g';
@@ -15,11 +18,13 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function round1(n: number): number {
-  return Math.round(n * 10) / 10;
-}
-
-export function AmountModal({ item, onClose, onSave }: AmountModalProps) {
+export function AmountModal({
+  item,
+  onClose,
+  onSave,
+  showRations = false,
+  gramsPerRation,
+}: AmountModalProps) {
   const food = item?.food;
   const recipe = item?.recipe;
   const servingGrams = recipe?.servingGrams ?? food?.servingAmount ?? null;
@@ -46,14 +51,8 @@ export function AmountModal({ item, onClose, onSave }: AmountModalProps) {
   const quantity = isNaN(parsed) || parsed <= 0 ? 0 : parsed;
   const grams = unit === 'units' && servingGrams ? quantity * servingGrams : quantity;
 
-  const ratio = item && item.amount > 0 ? grams / item.amount : 0;
   const base = item?.macros ?? { calories: 0, protein: 0, carbs: 0, fat: 0 };
-  const macros = {
-    calories: Math.round(base.calories * ratio),
-    protein: round1(base.protein * ratio),
-    carbs: round1(base.carbs * ratio),
-    fat: round1(base.fat * ratio),
-  };
+  const macros = item && item.amount > 0 ? scaleMacros(base, item.amount, grams) : base;
 
   const hint =
     unit === 'units' && servingGrams ? `= ${Math.round(quantity * servingGrams)} g` : undefined;
@@ -82,6 +81,8 @@ export function AmountModal({ item, onClose, onSave }: AmountModalProps) {
       macros={macros}
       confirmLabel="Guardar"
       confirmDisabled={grams <= 0}
+      showRations={showRations}
+      gramsPerRation={gramsPerRation}
       onClose={onClose}
       onConfirm={() => item && onSave(item.id, grams)}
     />

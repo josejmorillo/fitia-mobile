@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,9 +10,10 @@ import {
   View,
 } from 'react-native';
 
-import type { FoodInput } from '@/services/foodService';
+import { findDuplicateFood, type FoodInput } from '@/services/foodService';
 import { colors } from '@/utils/colors';
 import { FOOD_CATEGORIES } from '@/utils/constants';
+import { parseDecimalInput } from '@/utils/rations';
 import type { Food, NutritionData } from '@/utils/types';
 import { AiFoodSearchModal } from './AiFoodSearchModal';
 import { BarcodeScannerModal } from './BarcodeScannerModal';
@@ -83,21 +85,12 @@ export function FoodForm({ initial, onSubmit, submitLabel }: FoodFormProps) {
   }
 
   function parseNum(s: string): number {
-    return parseFloat(s.replace(',', '.')) || 0;
+    return parseDecimalInput(s) ?? 0;
   }
 
-  async function handleSave() {
-    if (!name.trim()) {
-      setError('El nombre es obligatorio.');
-      return;
-    }
+  async function persist() {
     const kcalNum = parseNum(kcal);
-    if (kcalNum <= 0) {
-      setError('Introduce un valor válido de calorías.');
-      return;
-    }
-
-    const serving = parseFloat(servingAmount.replace(',', '.'));
+    const serving = parseDecimalInput(servingAmount);
     setSaving(true);
     await onSubmit({
       name: name.trim(),
@@ -109,8 +102,50 @@ export function FoodForm({ initial, onSubmit, submitLabel }: FoodFormProps) {
       carbsPer100g: parseNum(carbs),
       fatPer100g: parseNum(fat),
       servingName: servingName.trim() || null,
-      servingAmount: isNaN(serving) || serving <= 0 ? null : serving,
+      servingAmount: serving != null && serving > 0 ? serving : null,
     });
+  }
+
+  async function handleSave() {
+    if (!name.trim()) {
+      setError('El nombre es obligatorio.');
+      return;
+    }
+    if (parseNum(kcal) <= 0) {
+      setError('Introduce un valor válido de calorías.');
+      return;
+    }
+    setError(null);
+
+    const carbsNum = parseNum(carbs);
+    const proteinNum = parseNum(protein);
+    const fatNum = parseNum(fat);
+    if (carbsNum > 100 || carbsNum + proteinNum + fatNum > 100) {
+      Alert.alert(
+        'Carbohidratos sospechosos',
+        `El valor de carbohidratos (${carbsNum} g por 100 g) parece alto. Revisa que no haya un error de coma (ej. 2,5 leído como 25).`,
+        [
+          { text: 'Revisar', style: 'cancel' },
+          { text: 'Guardar igualmente', onPress: persist },
+        ]
+      );
+      return;
+    }
+
+    const duplicate = await findDuplicateFood(name.trim(), initial?.id);
+    if (duplicate) {
+      Alert.alert(
+        'Posible alimento duplicado',
+        `Ya existe «${duplicate.name}» en tu base de datos. ¿Quieres guardarlo de todos modos?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Guardar', onPress: persist },
+        ]
+      );
+      return;
+    }
+
+    await persist();
   }
 
   return (

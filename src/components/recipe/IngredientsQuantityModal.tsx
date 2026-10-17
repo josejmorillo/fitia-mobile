@@ -106,7 +106,7 @@ export function IngredientsQuantityModal({
                   <Text style={styles.name} numberOfLines={1}>
                     {item.food.name}
                   </Text>
-                  {macros ? <Text style={styles.macros}>{macros.calories} kcal</Text> : null}
+                  {macros ? <Text style={styles.macros}>{Math.round(macros.calories)} kcal</Text> : null}
                 </View>
 
                 {hasServing ? (

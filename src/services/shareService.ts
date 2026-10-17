@@ -574,6 +574,8 @@ export async function importBackupEnvelope(
         calcGoalType: profile.calcGoalType,
         calcActivityLevel: profile.calcActivityLevel,
         calcSpeed: profile.calcSpeed,
+        diabetesModeEnabled: profile.diabetesModeEnabled ?? false,
+        carbRationGrams: profile.carbRationGrams ?? 10,
       });
     }
   }

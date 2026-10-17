@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 
 import { colors } from '@/utils/colors';
+import { round1 } from '@/utils/macros';
+import { calcCarbRations, formatRations } from '@/utils/rations';
 import { useKeyboardHeight } from '@/utils/useKeyboardHeight';
 
 export interface QuantityMacros {
@@ -37,6 +39,8 @@ interface QuantitySheetProps {
   macros: QuantityMacros;
   confirmLabel?: string;
   confirmDisabled?: boolean;
+  showRations?: boolean;
+  gramsPerRation?: number;
   onClose: () => void;
   onConfirm: () => void;
 }
@@ -55,10 +59,21 @@ export function QuantitySheet({
   macros,
   confirmLabel = 'Añadir',
   confirmDisabled,
+  showRations = false,
+  gramsPerRation,
   onClose,
   onConfirm,
 }: QuantitySheetProps) {
   const keyboardHeight = useKeyboardHeight();
+
+  const kcal = Math.round(macros.calories);
+  const protein = round1(macros.protein);
+  const carbs = round1(macros.carbs);
+  const fat = round1(macros.fat);
+  const ration =
+    showRations && gramsPerRation && gramsPerRation > 0
+      ? ` (${formatRations(calcCarbRations(macros.carbs, gramsPerRation))} R)`
+      : '';
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -118,8 +133,8 @@ export function QuantitySheet({
           {hint ? <Text style={styles.hint}>{hint}</Text> : null}
 
           <Text style={styles.macros}>
-            <Text style={styles.macrosKcal}>{macros.calories} kcal</Text>
-            {`  ·  P ${macros.protein} · C ${macros.carbs} · G ${macros.fat}`}
+            <Text style={styles.macrosKcal}>{kcal} kcal</Text>
+            {`  ·  P ${protein} · C ${carbs}${ration} · G ${fat}`}
           </Text>
 
           <Pressable

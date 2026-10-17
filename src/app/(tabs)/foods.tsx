@@ -13,6 +13,7 @@ import {
   shareJson,
 } from '@/services/shareService';
 import { colors } from '@/utils/colors';
+import { normalizeForSearch } from '@/utils/text';
 import type { Food, Recipe } from '@/utils/types';
 
 type Mode = 'foods' | 'recipes';
@@ -31,11 +32,11 @@ export default function FoodsScreen() {
     }, [])
   );
 
-  const q = query.toLowerCase();
+  const q = normalizeForSearch(query);
   const filteredFoods = foods.filter(
     (f) =>
-      f.name.toLowerCase().includes(q) ||
-      (f.brand ?? '').toLowerCase().includes(q)
+      normalizeForSearch(f.name).includes(q) ||
+      normalizeForSearch(f.brand ?? '').includes(q)
   );
 
   async function shareFood(food: Food) {
@@ -117,7 +118,7 @@ export default function FoodsScreen() {
                 <Pressable style={styles.shareBtn} onPress={() => shareFood(item)} hitSlop={8}>
                   <Ionicons name="share-outline" size={18} color={colors.primaryDark} />
                 </Pressable>
-                <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+                <Ionicons name="pencil-outline" size={16} color="#007AFF" />
               </Pressable>
             )}
             ListEmptyComponent={
@@ -150,7 +151,7 @@ export default function FoodsScreen() {
               <Pressable style={styles.shareBtn} onPress={() => shareRecipe(item)} hitSlop={8}>
                 <Ionicons name="share-outline" size={18} color={colors.primaryDark} />
               </Pressable>
-              <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+              <Ionicons name="pencil-outline" size={16} color="#007AFF" />
             </Pressable>
           )}
           ListEmptyComponent={

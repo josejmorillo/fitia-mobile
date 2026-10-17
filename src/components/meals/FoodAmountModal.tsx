@@ -8,6 +8,8 @@ interface FoodAmountModalProps {
   food: Food | null;
   onClose: () => void;
   onConfirm: (grams: number) => void;
+  showRations?: boolean;
+  gramsPerRation?: number;
 }
 
 type Unit = 'units' | 'g';
@@ -16,7 +18,13 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-export function FoodAmountModal({ food, onClose, onConfirm }: FoodAmountModalProps) {
+export function FoodAmountModal({
+  food,
+  onClose,
+  onConfirm,
+  showRations = false,
+  gramsPerRation,
+}: FoodAmountModalProps) {
   const servingGrams = food?.servingAmount ?? null;
   const unitLabel = food?.servingName ? capitalize(food.servingName) : 'Unidades';
 
@@ -62,6 +70,8 @@ export function FoodAmountModal({ food, onClose, onConfirm }: FoodAmountModalPro
       hint={hint}
       macros={macros}
       confirmDisabled={grams <= 0}
+      showRations={showRations}
+      gramsPerRation={gramsPerRation}
       onClose={onClose}
       onConfirm={() => onConfirm(grams)}
     />

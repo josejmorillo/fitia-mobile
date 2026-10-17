@@ -75,6 +75,14 @@ export interface UserProfile {
   calcGoalType: 'loss' | 'maintenance' | 'gain' | null;
   calcActivityLevel: 'sedentary' | 'light' | 'moderate' | 'very' | 'extra' | null;
   calcSpeed: 'slow' | 'moderate' | 'aggressive' | 'lean' | 'standard' | null;
+  diabetesModeEnabled: boolean;
+  carbRationGrams: number;
+}
+
+/** Ajustes de raciones de hidratos de carbono (modo diabetes). */
+export interface RationSettings {
+  enabled: boolean;
+  gramsPerRation: number;
 }
 
 export interface BodyMeasurement {

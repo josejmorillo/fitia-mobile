@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { FormScrollView } from '@/components/common/FormScrollView';
 import { getOrCreateProfile, updateProfile } from '@/services/profileService';
@@ -10,6 +10,11 @@ import {
   type GoalType,
   type Gender,
 } from '@/utils/nutritionCalculator';
+import {
+  CARB_RATION_OPTIONS,
+  DEFAULT_CARB_RATION_GRAMS,
+  parseDecimalInput,
+} from '@/utils/rations';
 
 type Option<T extends string> = { key: T; label: string };
 
@@ -101,6 +106,8 @@ export function ProfileForm() {
   const [protein, setProtein] = useState('');
   const [carbs, setCarbs] = useState('');
   const [fat, setFat] = useState('');
+  const [diabetesMode, setDiabetesMode] = useState(false);
+  const [carbRationGrams, setCarbRationGrams] = useState(String(DEFAULT_CARB_RATION_GRAMS));
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -115,6 +122,8 @@ export function ProfileForm() {
       if (p.goalProtein != null) setProtein(String(p.goalProtein));
       if (p.goalCarbs != null) setCarbs(String(p.goalCarbs));
       if (p.goalFat != null) setFat(String(p.goalFat));
+      setDiabetesMode(p.diabetesModeEnabled);
+      setCarbRationGrams(String(p.carbRationGrams));
     });
   }, []);
 
@@ -141,12 +150,31 @@ export function ProfileForm() {
     setFat(String(estimate.fat));
   }
 
+  function handleToggleDiabetes(next: boolean) {
+    setDiabetesMode(next);
+    if (next) {
+      const gramsLabel = carbRationGrams.trim() || String(DEFAULT_CARB_RATION_GRAMS);
+      Alert.alert(
+        'Raciones de hidratos de carbono',
+        `R = ración de hidratos de carbono. 1 R = ${gramsLabel} g de carbohidratos. Es solo informativo y no sustituye las indicaciones de tu médico o endocrino.`
+      );
+    }
+  }
+
   async function handleSave() {
     const w = parseNum(weight);
     const h = parseNum(height);
     const a = parseNum(age);
     if (w == null || h == null || a == null) {
       Alert.alert('Faltan datos', 'Peso, altura y edad son obligatorios.');
+      return;
+    }
+    const rationGrams = parseDecimalInput(carbRationGrams);
+    if (diabetesMode && (rationGrams == null || rationGrams <= 0)) {
+      Alert.alert(
+        'Valor no válido',
+        'Introduce un valor válido de gramos por ración (ej. 12).'
+      );
       return;
     }
     await updateProfile({
@@ -161,6 +189,9 @@ export function ProfileForm() {
       calcGoalType: goalType,
       calcActivityLevel: activity,
       calcSpeed: null,
+      diabetesModeEnabled: diabetesMode,
+      carbRationGrams:
+        rationGrams != null && rationGrams > 0 ? rationGrams : DEFAULT_CARB_RATION_GRAMS,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -278,6 +309,57 @@ export function ProfileForm() {
         </Pressable>
       </View>
 
+      <Text style={styles.sectionTitle}>Raciones de hidratos de carbono</Text>
+      <View style={styles.card}>
+        <View style={styles.switchRow}>
+          <View style={styles.switchTextWrap}>
+            <Text style={styles.switchTitle}>Modo diabetes</Text>
+            <Text style={styles.help}>
+              Muestra las raciones de hidratos de carbono (R) junto a los carbohidratos.
+            </Text>
+          </View>
+          <Switch
+            value={diabetesMode}
+            onValueChange={handleToggleDiabetes}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            thumbColor="#FFFFFF"
+          />
+        </View>
+
+        {diabetesMode && (
+          <>
+            <Text style={styles.label}>Gramos por ración</Text>
+            <TextInput
+              style={styles.input}
+              value={carbRationGrams}
+              onChangeText={setCarbRationGrams}
+              keyboardType="numeric"
+              placeholder="10"
+              placeholderTextColor={colors.textTertiary}
+            />
+            <View style={styles.chips}>
+              {CARB_RATION_OPTIONS.map((g) => {
+                const selected = carbRationGrams === String(g);
+                return (
+                  <Pressable
+                    key={g}
+                    style={[styles.chip, selected && styles.chipSelected]}
+                    onPress={() => setCarbRationGrams(String(g))}>
+                    <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                      {g} g
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={styles.help}>
+              1 R = {carbRationGrams.trim() || DEFAULT_CARB_RATION_GRAMS} g de carbohidratos.
+              Solo informativo.
+            </Text>
+          </>
+        )}
+      </View>
+
       <Pressable style={styles.saveBtn} onPress={handleSave}>
         <Text style={styles.saveText}>{saved ? 'Guardado ✓' : 'Guardar'}</Text>
       </Pressable>
@@ -305,6 +387,20 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 14,
     padding: 14,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  switchTextWrap: {
+    flex: 1,
+  },
+  switchTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 2,
   },
   row: {
     flexDirection: 'row',

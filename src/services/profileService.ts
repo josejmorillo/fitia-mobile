@@ -14,6 +14,8 @@ interface ProfileRow {
   calcGoalType: UserProfile['calcGoalType'];
   calcActivityLevel: UserProfile['calcActivityLevel'];
   calcSpeed: UserProfile['calcSpeed'];
+  diabetesModeEnabled: number;
+  carbRationGrams: number;
 }
 
 const PROFILE_SELECT = `
@@ -24,7 +26,9 @@ const PROFILE_SELECT = `
   goal_fat AS "goalFat",
   calc_goal_type AS "calcGoalType",
   calc_activity_level AS "calcActivityLevel",
-  calc_speed AS "calcSpeed"
+  calc_speed AS "calcSpeed",
+  diabetes_mode_enabled AS "diabetesModeEnabled",
+  carb_ration_grams AS "carbRationGrams"
 `;
 
 function mapProfile(row: ProfileRow): UserProfile {
@@ -41,6 +45,8 @@ function mapProfile(row: ProfileRow): UserProfile {
     calcGoalType: row.calcGoalType,
     calcActivityLevel: row.calcActivityLevel,
     calcSpeed: row.calcSpeed,
+    diabetesModeEnabled: row.diabetesModeEnabled === 1,
+    carbRationGrams: row.carbRationGrams,
   };
 }
 
@@ -66,8 +72,8 @@ export async function updateProfile(input: ProfileInput): Promise<void> {
   const db = await getDatabase();
   await db.runAsync(
     `INSERT INTO user_profile
-       (id, weight, height, age, gender, goal_calories, goal_protein, goal_carbs, goal_fat, calc_goal_type, calc_activity_level, calc_speed, updated_at)
-     VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+       (id, weight, height, age, gender, goal_calories, goal_protein, goal_carbs, goal_fat, calc_goal_type, calc_activity_level, calc_speed, diabetes_mode_enabled, carb_ration_grams, updated_at)
+     VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
      ON CONFLICT(id) DO UPDATE SET
        weight = excluded.weight,
        height = excluded.height,
@@ -80,6 +86,8 @@ export async function updateProfile(input: ProfileInput): Promise<void> {
        calc_goal_type = excluded.calc_goal_type,
        calc_activity_level = excluded.calc_activity_level,
        calc_speed = excluded.calc_speed,
+       diabetes_mode_enabled = excluded.diabetes_mode_enabled,
+       carb_ration_grams = excluded.carb_ration_grams,
        updated_at = datetime('now')`,
     [
       input.weight,
@@ -93,6 +101,8 @@ export async function updateProfile(input: ProfileInput): Promise<void> {
       input.calcGoalType,
       input.calcActivityLevel,
       input.calcSpeed,
+      input.diabetesModeEnabled ? 1 : 0,
+      input.carbRationGrams,
     ]
   );
 }

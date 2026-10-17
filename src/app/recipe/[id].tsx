@@ -8,24 +8,31 @@ import {
   getRecipeIngredients,
   getRecipes,
 } from '@/services/recipeService';
+import { getOrCreateProfile } from '@/services/profileService';
 import { colors } from '@/utils/colors';
-import { foodMacros } from '@/utils/macros';
-import type { Recipe, RecipeIngredient } from '@/utils/types';
+import { ingredientTotals } from '@/utils/macros';
+import { calcCarbRations, formatRations } from '@/utils/rations';
+import type { Recipe, RecipeIngredient, UserProfile } from '@/utils/types';
 
 export default function RecipeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [ingredients, setIngredients] = useState<RecipeIngredient[]>([]);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
-      const recipes = await getRecipes();
+      const [recipes, ings, prof] = await Promise.all([
+        getRecipes(),
+        getRecipeIngredients(Number(id)),
+        getOrCreateProfile(),
+      ]);
       const found = recipes.find((r) => r.id === Number(id)) ?? null;
-      const ings = await getRecipeIngredients(Number(id));
       setRecipe(found);
       setIngredients(ings);
+      setProfile(prof);
       setLoading(false);
     }
     load();
@@ -61,19 +68,15 @@ export default function RecipeDetailScreen() {
     );
   }
 
-  const total = ingredients.reduce(
-    (acc, ing) => {
-      if (!ing.food) return acc;
-      const m = foodMacros(ing.food, ing.amount);
-      return {
-        calories: acc.calories + m.calories,
-        protein: acc.protein + m.protein,
-        carbs: acc.carbs + m.carbs,
-        fat: acc.fat + m.fat,
-      };
-    },
-    { calories: 0, protein: 0, carbs: 0, fat: 0 }
+  const total = ingredientTotals(
+    ingredients.filter((i) => i.food).map((i) => ({ food: i.food!, amount: i.amount }))
   );
+  const showRations = profile?.diabetesModeEnabled ?? false;
+  const gramsPerRation = profile?.carbRationGrams ?? 10;
+  const rationLabel =
+    showRations && gramsPerRation > 0
+      ? ` · ${formatRations(calcCarbRations(total.carbs, gramsPerRation))} R`
+      : '';
 
   return (
     <>
@@ -105,7 +108,7 @@ export default function RecipeDetailScreen() {
         <View style={styles.macrosRow}>
           <Text style={styles.macrosText}>
             {Math.round(total.calories)} kcal · P {Math.round(total.protein)}g · C{' '}
-            {Math.round(total.carbs)}g · G {Math.round(total.fat)}g
+            {Math.round(total.carbs)}g{rationLabel} · G {Math.round(total.fat)}g
           </Text>
         </View>
 

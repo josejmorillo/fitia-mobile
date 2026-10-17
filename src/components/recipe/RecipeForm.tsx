@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -11,12 +11,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { createFood, getFood, type FoodInput } from '@/services/foodService';
+import { getOrCreateProfile } from '@/services/profileService';
 import { EmojiPickerModal } from '@/components/common/EmojiPickerModal';
 import { FormScrollView } from '@/components/common/FormScrollView';
 import { FoodPickerModal } from '@/components/food/FoodPickerModal';
 import { FoodForm } from '@/components/food/FoodForm';
 import { colors } from '@/utils/colors';
 import { ingredientTotals } from '@/utils/macros';
+import { calcCarbRations, formatRations } from '@/utils/rations';
 import type { Food, RecipeIngredient } from '@/utils/types';
 import { IngredientsQuantityModal } from './IngredientsQuantityModal';
 
@@ -61,6 +63,15 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: RecipeFormProps) 
   const [emojiVisible, setEmojiVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showRations, setShowRations] = useState(false);
+  const [gramsPerRation, setGramsPerRation] = useState(10);
+
+  useEffect(() => {
+    getOrCreateProfile().then((p) => {
+      setShowRations(p.diabetesModeEnabled);
+      setGramsPerRation(p.carbRationGrams);
+    });
+  }, []);
 
   function addDraft(food: Food) {
     setDrafts((prev) => [
@@ -237,6 +248,13 @@ export function RecipeForm({ initial, onSubmit, submitLabel }: RecipeFormProps) 
                 </View>
               );
             })}
+
+            {showRations && gramsPerRation > 0 && (
+              <Text style={styles.totalsServing}>
+                {formatRations(calcCarbRations(totals.carbs, gramsPerRation))} R de hidratos de
+                carbono
+              </Text>
+            )}
 
             <Text style={styles.totalsServing}>
               1 ración = {servingGrams.trim() ? `${servingGrams.trim()} g` : 'sin definir'}

@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { getAllFoods } from '@/services/foodService';
 import { getRecipes } from '@/services/recipeService';
 import { colors } from '@/utils/colors';
+import { normalizeForSearch } from '@/utils/text';
 import type { Food, Recipe } from '@/utils/types';
 
 interface FoodPickerModalProps {
@@ -54,13 +55,13 @@ export function FoodPickerModal({
     if (onSelectRecipeRef.current) getRecipes().then(setRecipes);
   }, [visible, wasVisible]);
 
-  const q = query.toLowerCase();
+  const q = normalizeForSearch(query);
   const filteredFoods = foods.filter(
     (f) =>
-      f.name.toLowerCase().includes(q) ||
-      (f.brand ?? '').toLowerCase().includes(q)
+      normalizeForSearch(f.name).includes(q) ||
+      normalizeForSearch(f.brand ?? '').includes(q)
   );
-  const filteredRecipes = recipes.filter((r) => r.name.toLowerCase().includes(q));
+  const filteredRecipes = recipes.filter((r) => normalizeForSearch(r.name).includes(q));
 
   function toggleSelect(food: Food) {
     setSelectedIds((prev) =>

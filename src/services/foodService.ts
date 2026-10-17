@@ -1,4 +1,5 @@
 import type { Food } from '../utils/types';
+import { normalizeName } from '../utils/text';
 import { getDatabase } from './database';
 import { FOOD_SELECT, mapFoodRow, type FoodRow } from './mappers';
 
@@ -35,6 +36,19 @@ export async function getFood(id: number): Promise<Food | null> {
     [id]
   );
   return row ? mapFoodRow(row) : null;
+}
+
+/** Busca un alimento con el mismo nombre (ignorando tildes, mayúsculas y espacios). */
+export async function findDuplicateFood(
+  name: string,
+  excludeId?: number
+): Promise<Food | null> {
+  const normalized = normalizeName(name);
+  if (!normalized) return null;
+  const foods = await getAllFoods();
+  return (
+    foods.find((f) => f.id !== excludeId && normalizeName(f.name) === normalized) ?? null
+  );
 }
 
 export async function createFood(input: FoodInput): Promise<number> {

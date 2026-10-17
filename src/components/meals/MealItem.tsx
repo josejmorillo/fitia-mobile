@@ -5,6 +5,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { useIsActive, useReorderableDrag } from 'react-native-reorderable-list';
 
 import { colors } from '@/utils/colors';
+import { calcCarbRations, formatRations } from '@/utils/rations';
 import type { DailyLogItem } from '@/utils/types';
 
 interface MealItemProps {
@@ -14,6 +15,8 @@ interface MealItemProps {
   onAmountPress: (item: DailyLogItem) => void;
   onEdit?: (foodId: number) => void;
   onCopy?: (item: DailyLogItem) => void;
+  showRations?: boolean;
+  gramsPerRation?: number;
 }
 
 export function MealItem({
@@ -23,6 +26,8 @@ export function MealItem({
   onAmountPress,
   onEdit,
   onCopy,
+  showRations = false,
+  gramsPerRation,
 }: MealItemProps) {
   const swipeableRef = useRef<Swipeable>(null);
   const drag = useReorderableDrag();
@@ -32,6 +37,10 @@ export function MealItem({
   if (!food && !recipe) return null;
 
   const macros = item.macros ?? { calories: 0, protein: 0, carbs: 0, fat: 0 };
+  const rationLabel =
+    showRations && gramsPerRation && gramsPerRation > 0
+      ? ` (${formatRations(calcCarbRations(macros.carbs, gramsPerRation))} R)`
+      : '';
   const consumed = item.consumed;
   const emoji = food?.emoji ?? recipe?.emoji ?? '🍽️';
   const name = food?.name ?? recipe?.name ?? '';
@@ -103,7 +112,7 @@ export function MealItem({
           <View style={styles.right}>
             <View style={styles.macros}>
               <Text style={[styles.macro, { color: colors.protein }]}>{Math.round(macros.protein)}P</Text>
-              <Text style={[styles.macro, { color: colors.carbs }]}>{Math.round(macros.carbs)}C</Text>
+              <Text style={[styles.macro, { color: colors.carbs }]}>{Math.round(macros.carbs)}C{rationLabel}</Text>
               <Text style={[styles.macro, { color: colors.fat }]}>{Math.round(macros.fat)}G</Text>
             </View>
             <View style={styles.actionButtons}>

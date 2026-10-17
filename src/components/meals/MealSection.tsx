@@ -1,11 +1,11 @@
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Gesture } from 'react-native-gesture-handler';
 import { NestedReorderableList } from 'react-native-reorderable-list';
 
 import { colors } from '@/utils/colors';
 import { MEAL_LABELS } from '@/utils/constants';
+import { sumMacros } from '@/utils/macros';
+import { calcCarbRations, formatRations } from '@/utils/rations';
 import type { DailyLogItem, MealType } from '@/utils/types';
 import { MealItem } from './MealItem';
 
@@ -23,6 +23,8 @@ interface MealSectionProps {
   onCopy?: (item: DailyLogItem) => void;
   onRepeat?: (mealType: MealType) => void;
   onReorder?: (mealType: MealType, orderedIds: number[]) => void;
+  showRations?: boolean;
+  gramsPerRation?: number;
 }
 
 interface MiniMacro {
@@ -46,20 +48,19 @@ export function MealSection({
   onCopy,
   onRepeat,
   onReorder,
+  showRations = false,
+  gramsPerRation,
 }: MealSectionProps) {
-  const panGesture = useMemo(() => Gesture.Pan().activateAfterLongPress(220), []);
   const mealItems = items.filter((i) => i.mealType === mealType);
-  const mealMacros = mealItems.filter((i) => i.consumed).reduce(
-    (acc, i) => {
-      const m = i.macros ?? { calories: 0, protein: 0, carbs: 0, fat: 0 };
-      return {
-        protein: acc.protein + m.protein,
-        carbs: acc.carbs + m.carbs,
-        fat: acc.fat + m.fat,
-      };
-    },
-    { protein: 0, carbs: 0, fat: 0 }
+  const mealMacros = sumMacros(
+    mealItems
+      .filter((i) => i.consumed)
+      .map((i) => i.macros ?? { calories: 0, protein: 0, carbs: 0, fat: 0 })
   );
+  const rationLabel =
+    showRations && gramsPerRation && gramsPerRation > 0
+      ? formatRations(calcCarbRations(mealMacros.carbs, gramsPerRation))
+      : null;
 
   const miniMacros: MiniMacro[] = [
     { key: 'P', value: mealMacros.protein, goal: goalProtein, color: colors.protein },
@@ -70,7 +71,15 @@ export function MealSection({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{MEAL_LABELS[mealType]}</Text>
+        <Text style={styles.title} numberOfLines={1}>
+          {MEAL_LABELS[mealType]}
+        </Text>
+
+        {rationLabel != null && (
+          <Text style={styles.ration} numberOfLines={1}>
+            {rationLabel} R
+          </Text>
+        )}
 
         <View style={styles.miniBars}>
           {miniMacros.map((m) => {
@@ -117,7 +126,7 @@ export function MealSection({
           scrollable={false}
           scrollEnabled={false}
           shouldUpdateActiveItem
-          panGesture={panGesture}
+          panActivateAfterLongPress={220}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => (
             <MealItem
@@ -127,6 +136,8 @@ export function MealSection({
               onAmountPress={onAmountPress}
               onEdit={onEdit}
               onCopy={onCopy}
+              showRations={showRations}
+              gramsPerRation={gramsPerRation}
             />
           )}
           onReorder={({ from, to }) => {
@@ -162,7 +173,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.text,
-    width: 88,
+    flexShrink: 1,
+    minWidth: 72,
+  },
+  ration: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    flexShrink: 0,
   },
   miniBars: {
     flex: 1,
