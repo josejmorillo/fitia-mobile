@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
@@ -22,21 +22,28 @@ export default function RecipeDetailScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function load() {
-      const [recipes, ings, prof] = await Promise.all([
-        getRecipes(),
-        getRecipeIngredients(Number(id)),
-        getOrCreateProfile(),
-      ]);
-      const found = recipes.find((r) => r.id === Number(id)) ?? null;
-      setRecipe(found);
-      setIngredients(ings);
-      setProfile(prof);
-      setLoading(false);
-    }
-    load();
-  }, [id]);
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      async function load() {
+        const [recipes, ings, prof] = await Promise.all([
+          getRecipes(),
+          getRecipeIngredients(Number(id)),
+          getOrCreateProfile(),
+        ]);
+        if (cancelled) return;
+        const found = recipes.find((r) => r.id === Number(id)) ?? null;
+        setRecipe(found);
+        setIngredients(ings);
+        setProfile(prof);
+        setLoading(false);
+      }
+      load();
+      return () => {
+        cancelled = true;
+      };
+    }, [id])
+  );
 
   async function handleDelete() {
     Alert.alert('Borrar receta', '¿Seguro que quieres borrarla?', [
