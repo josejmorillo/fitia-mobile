@@ -118,7 +118,7 @@ export default function FoodsScreen() {
                 <Pressable style={styles.shareBtn} onPress={() => shareFood(item)} hitSlop={8}>
                   <Ionicons name="share-outline" size={18} color={colors.primaryDark} />
                 </Pressable>
-                <Ionicons name="pencil-outline" size={16} color="#007AFF" />
+                <Ionicons name="create-outline" size={16} color="#007AFF" />
               </Pressable>
             )}
             ListEmptyComponent={
@@ -151,7 +151,7 @@ export default function FoodsScreen() {
               <Pressable style={styles.shareBtn} onPress={() => shareRecipe(item)} hitSlop={8}>
                 <Ionicons name="share-outline" size={18} color={colors.primaryDark} />
               </Pressable>
-              <Ionicons name="pencil-outline" size={16} color="#007AFF" />
+              <Ionicons name="create-outline" size={16} color="#007AFF" />
             </Pressable>
           )}
           ListEmptyComponent={

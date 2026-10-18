@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
   },
   ration: {
     fontWeight: '800',
-    color: colors.primaryDark,
+    color: colors.carbs,
   },
   track: {
     width: '100%',

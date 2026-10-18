@@ -360,7 +360,7 @@ export function ProfileForm({ mode }: { mode: ProfileFormMode }) {
                   placeholder="10"
                   placeholderTextColor={colors.textTertiary}
                 />
-                <View style={styles.chips}>
+                <View style={[styles.chips, styles.rationChips]}>
                   {CARB_RATION_OPTIONS.map((g) => {
                     const selected = carbRationGrams === String(g);
                     return (
@@ -462,6 +462,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+  },
+  rationChips: {
+    marginTop: 8,
   },
   chip: {
     paddingHorizontal: 14,

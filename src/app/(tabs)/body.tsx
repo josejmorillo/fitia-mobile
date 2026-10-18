@@ -200,7 +200,7 @@ export default function BodyScreen() {
                 <Text style={styles.cardDate}>{formatLogDate(m.date)}</Text>
                 <View style={styles.cardActions}>
                   <Pressable onPress={() => openEdit(m)} hitSlop={8}>
-                    <Ionicons name="pencil-outline" size={19} color="#007AFF" />
+                    <Ionicons name="create-outline" size={19} color="#007AFF" />
                   </Pressable>
                   <Pressable onPress={() => handleDelete(m)} hitSlop={8}>
                     <Ionicons name="trash-outline" size={19} color="#ff4d4d" />

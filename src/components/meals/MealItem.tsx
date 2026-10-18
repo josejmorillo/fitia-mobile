@@ -138,7 +138,7 @@ export function MealItem({
             <View style={styles.actionButtons}>
               {onEdit && (food || recipe) && (
                 <Pressable style={styles.editBtn} onPress={() => onEdit(item)} hitSlop={6}>
-                  <Ionicons name="pencil-outline" size={15} color="#007AFF" />
+                  <Ionicons name="create-outline" size={15} color="#007AFF" />
                 </Pressable>
               )}
               <Pressable style={styles.deleteBtn} onPress={() => onDelete(item.id)} hitSlop={6}>
@@ -163,17 +163,26 @@ export function MealItem({
                 : null;
             return (
               <View key={ing.id} style={styles.ingredientRow}>
-                <View style={styles.ingredientTop}>
-                  <Text style={styles.ingredientEmoji}>{ingFood.emoji}</Text>
+                <Text style={styles.ingredientEmoji}>{ingFood.emoji}</Text>
+                <View style={styles.ingredientInfo}>
                   <Text style={styles.ingredientName} numberOfLines={1}>
                     {ingFood.name}
                   </Text>
-                  <Text style={styles.ingredientGrams}>{grams} g</Text>
+                  <Text style={styles.ingredientGrams}>
+                    {grams} g{ration ? ` · ${ration} R` : ''}
+                  </Text>
                 </View>
-                <Text style={styles.ingredientMacros}>
-                  {Math.round(scaled.protein)}P · {Math.round(scaled.carbs)}C
-                  {ration ? ` (${ration} R)` : ''} · {Math.round(scaled.fat)}G
-                </Text>
+                <View style={styles.ingredientMacros}>
+                  <Text style={[styles.ingredientMacro, { color: colors.protein }]}>
+                    {Math.round(scaled.protein)}P
+                  </Text>
+                  <Text style={[styles.ingredientMacro, { color: colors.carbs }]}>
+                    {Math.round(scaled.carbs)}C
+                  </Text>
+                  <Text style={[styles.ingredientMacro, { color: colors.fat }]}>
+                    {Math.round(scaled.fat)}G
+                  </Text>
+                </View>
               </View>
             );
           })}
@@ -304,27 +313,31 @@ const styles = StyleSheet.create({
   ingredientsBox: {
     backgroundColor: colors.surface,
     paddingHorizontal: 12,
-    paddingBottom: 10,
-    gap: 8,
+    paddingTop: 12,
+    paddingBottom: 12,
+    gap: 10,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
   ingredientRow: {
-    gap: 1,
-    paddingLeft: 8,
-  },
-  ingredientTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+    paddingLeft: 44,
   },
   ingredientEmoji: {
-    fontSize: 13,
+    fontSize: 14,
+    width: 18,
+    textAlign: 'center',
+  },
+  ingredientInfo: {
+    flex: 1,
+    minWidth: 0,
+    gap: 1,
   },
   ingredientName: {
-    flex: 1,
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
     color: colors.text,
   },
   ingredientGrams: {
@@ -332,8 +345,13 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   ingredientMacros: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: 0,
+  },
+  ingredientMacro: {
     fontSize: 11,
-    color: colors.textSecondary,
-    paddingLeft: 19,
+    fontWeight: '700',
+    lineHeight: 13,
   },
 });

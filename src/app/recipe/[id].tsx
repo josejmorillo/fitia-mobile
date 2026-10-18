@@ -97,7 +97,7 @@ export default function RecipeDetailScreen() {
                   router.push({ pathname: '/recipe/edit/[id]', params: { id: String(id) } })
                 }
                 hitSlop={8}>
-                <Ionicons name="pencil-outline" size={22} color="#007AFF" />
+                <Ionicons name="create-outline" size={22} color="#007AFF" />
               </Pressable>
               <Pressable onPress={handleDelete} hitSlop={8}>
                 <Ionicons name="trash-outline" size={22} color="#ff4d4d" />
