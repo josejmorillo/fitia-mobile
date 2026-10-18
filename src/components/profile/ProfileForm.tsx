@@ -1,9 +1,22 @@
-import { useEffect, useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { FormScrollView } from '@/components/common/FormScrollView';
-import { getOrCreateProfile, updateProfile } from '@/services/profileService';
+import {
+  getOrCreateProfile,
+  updateCarbRationGrams,
+  updateDiabetesMode,
+  updateProfile,
+} from '@/services/profileService';
 import { colors } from '@/utils/colors';
+import {
+  goalsFromEstimate,
+  macroCalories,
+  reconcileMacro,
+  type GoalMacroField,
+  type Goals,
+} from '@/utils/goalsMath';
 import {
   calculateGoals,
   type ActivityLevel,
@@ -98,6 +111,134 @@ function parseNum(s: string): number | null {
   return isNaN(n) ? null : n;
 }
 
+/**
+ * Pulsación con auto-repetición y aceleración: el primer paso es inmediato y,
+ * mientras se mantiene pulsado, se repite cada vez más rápido.
+ */
+function useHoldRepeat(onStep: () => void) {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const delay = useRef(350);
+  const stepRef = useRef(onStep);
+
+  useEffect(() => {
+    stepRef.current = onStep;
+  }, [onStep]);
+
+  function clear() {
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+  }
+
+  function schedule() {
+    timer.current = setTimeout(() => {
+      stepRef.current();
+      delay.current = Math.max(60, Math.round(delay.current * 0.75));
+      schedule();
+    }, delay.current);
+  }
+
+  function start() {
+    clear();
+    delay.current = 350;
+    stepRef.current();
+    schedule();
+  }
+
+  function stop() {
+    clear();
+    delay.current = 350;
+  }
+
+  useEffect(() => {
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, []);
+
+  return { start, stop };
+}
+
+function MacroStepperRow({
+  label,
+  value,
+  factor,
+  totalKcal,
+  color,
+  onStep,
+}: {
+  label: string;
+  value: number;
+  factor: number;
+  totalKcal: number;
+  color: string;
+  onStep: (delta: number) => void;
+}) {
+  const dec = useHoldRepeat(() => onStep(-1));
+  const inc = useHoldRepeat(() => onStep(1));
+  const kcal = value * factor;
+  const pct = totalKcal > 0 ? Math.min((kcal / totalKcal) * 100, 100) : 0;
+
+  return (
+    <View style={styles.macroStepperRow}>
+      <Text style={styles.macroStepperLabel}>{label}</Text>
+      <Pressable
+        style={styles.macroStepBtn}
+        onPressIn={dec.start}
+        onPressOut={dec.stop}
+        hitSlop={6}>
+        <Ionicons name="remove" size={15} color={colors.primaryDark} />
+      </Pressable>
+      <Text style={styles.macroStepperValue}>{value} g</Text>
+      <Pressable
+        style={styles.macroStepBtn}
+        onPressIn={inc.start}
+        onPressOut={inc.stop}
+        hitSlop={6}>
+        <Ionicons name="add" size={15} color={colors.primaryDark} />
+      </Pressable>
+      <View style={styles.macroStepperTrack}>
+        <View style={[styles.macroStepperFill, { width: `${pct}%`, backgroundColor: color }]} />
+      </View>
+    </View>
+  );
+}
+
+function MacroBars({
+  protein,
+  carbs,
+  fat,
+  totalKcal,
+}: {
+  protein: number;
+  carbs: number;
+  fat: number;
+  totalKcal: number;
+}) {
+  const rows = [
+    { label: 'Proteína', grams: protein, kcal: protein * 4, color: colors.protein },
+    { label: 'Carbos', grams: carbs, kcal: carbs * 4, color: colors.carbs },
+    { label: 'Grasa', grams: fat, kcal: fat * 9, color: colors.fat },
+  ];
+  return (
+    <>
+      {rows.map((m) => {
+        const pct = totalKcal > 0 ? Math.min((m.kcal / totalKcal) * 100, 100) : 0;
+        return (
+          <View key={m.label} style={styles.macroRow}>
+            <Text style={styles.macroLabel}>{m.label}</Text>
+            <Text style={styles.macroValue}>{m.grams} g</Text>
+            <View style={styles.macroTrack}>
+              <View style={[styles.macroFill, { width: `${pct}%`, backgroundColor: m.color }]} />
+            </View>
+          </View>
+        );
+      })}
+    </>
+  );
+}
+
 export function ProfileForm({ mode }: { mode: ProfileFormMode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [weight, setWeight] = useState('');
@@ -106,10 +247,7 @@ export function ProfileForm({ mode }: { mode: ProfileFormMode }) {
   const [gender, setGender] = useState<Gender>('male');
   const [goalType, setGoalType] = useState<GoalType>('maintenance');
   const [activity, setActivity] = useState<ActivityLevel>('moderate');
-  const [kcal, setKcal] = useState('');
-  const [protein, setProtein] = useState('');
-  const [carbs, setCarbs] = useState('');
-  const [fat, setFat] = useState('');
+  const [goals, setGoals] = useState<Goals>({ kcal: 0, protein: 0, carbs: 0, fat: 0 });
   const [diabetesMode, setDiabetesMode] = useState(false);
   const [carbRationGrams, setCarbRationGrams] = useState(String(DEFAULT_CARB_RATION_GRAMS));
   const [saved, setSaved] = useState(false);
@@ -123,10 +261,16 @@ export function ProfileForm({ mode }: { mode: ProfileFormMode }) {
       if (p.gender) setGender(p.gender);
       if (p.calcGoalType) setGoalType(p.calcGoalType);
       if (p.calcActivityLevel) setActivity(p.calcActivityLevel);
-      if (p.goalCalories != null) setKcal(String(p.goalCalories));
-      if (p.goalProtein != null) setProtein(String(p.goalProtein));
-      if (p.goalCarbs != null) setCarbs(String(p.goalCarbs));
-      if (p.goalFat != null) setFat(String(p.goalFat));
+      const protein0 = p.goalProtein ?? 0;
+      const carbs0 = p.goalCarbs ?? 0;
+      const fat0 = p.goalFat ?? 0;
+      const derivedKcal = macroCalories(protein0, carbs0, fat0);
+      setGoals({
+        protein: protein0,
+        carbs: carbs0,
+        fat: fat0,
+        kcal: derivedKcal > 0 ? derivedKcal : (p.goalCalories ?? 0),
+      });
       setDiabetesMode(p.diabetesModeEnabled);
       setCarbRationGrams(String(p.carbRationGrams));
     });
@@ -147,15 +291,32 @@ export function ProfileForm({ mode }: { mode: ProfileFormMode }) {
       })
     : null;
 
+  const estimateGoals = estimate ? goalsFromEstimate(estimate) : null;
+  const isManual =
+    !estimateGoals ||
+    goals.protein !== estimateGoals.protein ||
+    goals.carbs !== estimateGoals.carbs ||
+    goals.fat !== estimateGoals.fat;
+
   function applyEstimate() {
     if (!estimate) return;
-    setKcal(String(estimate.targetCalories));
-    setProtein(String(estimate.protein));
-    setCarbs(String(estimate.carbs));
-    setFat(String(estimate.fat));
+    setGoals(goalsFromEstimate(estimate));
   }
 
-  function handleToggleDiabetes(next: boolean) {
+  const stepMacro = (field: GoalMacroField, delta: number) =>
+    setGoals((prev) => reconcileMacro(field, Math.max(0, prev[field] + delta), prev));
+
+  async function persistRationGrams(value: string) {
+    const grams = parseDecimalInput(value);
+    if (grams == null || grams <= 0) return;
+    try {
+      await updateCarbRationGrams(grams);
+    } catch (e) {
+      console.error('[profile] no se pudieron guardar los gramos por ración:', e);
+    }
+  }
+
+  async function handleToggleDiabetes(next: boolean) {
     setDiabetesMode(next);
     if (next) {
       const gramsLabel = carbRationGrams.trim() || String(DEFAULT_CARB_RATION_GRAMS);
@@ -163,6 +324,11 @@ export function ProfileForm({ mode }: { mode: ProfileFormMode }) {
         'Raciones de hidratos de carbono',
         `R = ración de hidratos de carbono. 1 R = ${gramsLabel} g de carbohidratos. Es solo informativo y no sustituye las indicaciones de tu médico o endocrino.`
       );
+    }
+    try {
+      await updateDiabetesMode(next);
+    } catch (e) {
+      console.error('[profile] no se pudo guardar el modo diabetes:', e);
     }
   }
 
@@ -189,10 +355,10 @@ export function ProfileForm({ mode }: { mode: ProfileFormMode }) {
       age: mode === 'datos' ? parseNum(age) : (base?.age ?? null),
       gender: mode === 'datos' ? gender : (base?.gender ?? null),
       // Objetivos: se editan en la pestaña Objetivo.
-      goalCalories: mode === 'objetivo' ? parseNum(kcal) : (base?.goalCalories ?? null),
-      goalProtein: mode === 'objetivo' ? parseNum(protein) : (base?.goalProtein ?? null),
-      goalCarbs: mode === 'objetivo' ? parseNum(carbs) : (base?.goalCarbs ?? null),
-      goalFat: mode === 'objetivo' ? parseNum(fat) : (base?.goalFat ?? null),
+      goalCalories: mode === 'objetivo' ? goals.kcal : (base?.goalCalories ?? null),
+      goalProtein: mode === 'objetivo' ? goals.protein : (base?.goalProtein ?? null),
+      goalCarbs: mode === 'objetivo' ? goals.carbs : (base?.goalCarbs ?? null),
+      goalFat: mode === 'objetivo' ? goals.fat : (base?.goalFat ?? null),
       calcGoalType: mode === 'objetivo' ? goalType : (base?.calcGoalType ?? null),
       calcActivityLevel: mode === 'objetivo' ? activity : (base?.calcActivityLevel ?? null),
       calcSpeed: base?.calcSpeed ?? null,
@@ -214,106 +380,140 @@ export function ProfileForm({ mode }: { mode: ProfileFormMode }) {
     <FormScrollView style={styles.container} contentContainerStyle={styles.content}>
       {mode === 'objetivo' ? (
         <>
-          <Text style={styles.sectionTitle}>Estimación</Text>
-          {estimate ? (
-            <View style={styles.card}>
-              <View style={styles.hero}>
-                <Text style={styles.heroLabel}>Calorías objetivo</Text>
-                <View style={styles.heroRow}>
-                  <Text style={styles.heroValue}>{estimate.targetCalories}</Text>
-                  <Text style={styles.heroUnit}>kcal</Text>
-                </View>
-                {estimate.deficitSurplus !== 0 && (
-                  <Text style={styles.heroNote}>
-                    {estimate.deficitSurplus < 0
-                      ? `Déficit de ${Math.abs(estimate.deficitSurplus)} kcal para definir`
-                      : `Superávit de ${estimate.deficitSurplus} kcal para volumen`}
-                  </Text>
-                )}
-              </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.statRow}>
-                <View style={styles.stat}>
-                  <Text style={styles.statLabel}>Metabolismo (BMR)</Text>
-                  <Text style={styles.statValue}>{estimate.bmr} kcal</Text>
-                </View>
-                <View style={styles.stat}>
-                  <Text style={styles.statLabel}>Gasto diario (TDEE)</Text>
-                  <Text style={styles.statValue}>{estimate.tdee} kcal</Text>
-                </View>
-              </View>
-
-              <View style={styles.divider} />
-
-              {[
-                { label: 'Proteína', value: estimate.protein, color: colors.protein, factor: 4 },
-                { label: 'Carbos', value: estimate.carbs, color: colors.carbs, factor: 4 },
-                { label: 'Grasa', value: estimate.fat, color: colors.fat, factor: 9 },
-              ].map((m) => {
-                const pct =
-                  estimate.targetCalories > 0
-                    ? Math.min(((m.value * m.factor) / estimate.targetCalories) * 100, 100)
-                    : 0;
-                return (
-                  <View key={m.label} style={styles.macroRow}>
-                    <Text style={styles.macroLabel}>{m.label}</Text>
-                    <Text style={styles.macroValue}>{m.value} g</Text>
-                    <View style={styles.macroTrack}>
-                      <View
-                        style={[styles.macroFill, { width: `${pct}%`, backgroundColor: m.color }]}
-                      />
-                    </View>
-                  </View>
-                );
-              })}
-
-              {estimate.warnings.map((w) => (
-                <Text key={w} style={styles.estimateWarn}>
-                  ⚠️ {w}
-                </Text>
-              ))}
-            </View>
-          ) : (
-            <View style={styles.card}>
-              <Text style={styles.help}>
-                Completa tus datos personales en la pestaña «Datos» para ver la estimación.
-              </Text>
-            </View>
-          )}
-
           <Text style={styles.sectionTitle}>Objetivo</Text>
           <View style={styles.card}>
-            <Text style={styles.label}>Tipo</Text>
-            <ChipGroup options={GOAL_OPTIONS} value={goalType} onChange={setGoalType} />
-            <Text style={styles.label}>Nivel de actividad</Text>
-            <ChipGroup options={ACTIVITY_OPTIONS} value={activity} onChange={setActivity} />
-          </View>
+            <View style={styles.hero}>
+              <View style={styles.heroHeader}>
+                <Text style={styles.heroLabel}>Objetivo</Text>
+                <Text
+                  style={[
+                    styles.badge,
+                    isManual ? styles.badgeManual : styles.badgeRecommended,
+                  ]}>
+                  {isManual ? 'Manual' : 'Recomendado'}
+                </Text>
+              </View>
+              <View style={styles.heroRow}>
+                <Text style={styles.heroValue}>{goals.kcal}</Text>
+                <Text style={styles.heroUnit}>kcal</Text>
+              </View>
+            </View>
 
-          <Text style={styles.sectionTitle}>Tus metas</Text>
-          <View style={styles.card}>
-            <Text style={styles.help}>
-              Tus objetivos actuales. Puedes editarlos a mano o copiar la estimación.
+            <View style={styles.divider} />
+
+            <MacroStepperRow
+              label="Proteína"
+              value={goals.protein}
+              factor={4}
+              totalKcal={goals.kcal}
+              color={colors.protein}
+              onStep={(d) => stepMacro('protein', d)}
+            />
+            <MacroStepperRow
+              label="Carbos"
+              value={goals.carbs}
+              factor={4}
+              totalKcal={goals.kcal}
+              color={colors.carbs}
+              onStep={(d) => stepMacro('carbs', d)}
+            />
+            <MacroStepperRow
+              label="Grasa"
+              value={goals.fat}
+              factor={9}
+              totalKcal={goals.kcal}
+              color={colors.fat}
+              onStep={(d) => stepMacro('fat', d)}
+            />
+
+            <Text style={[styles.help, styles.metasHelp, isManual && styles.helpManual]}>
+              {isManual
+                ? 'Valores manuales: pueden no coincidir con la estimación científica.'
+                : 'Valores según la estimación recomendada.'}
             </Text>
-            <View style={styles.row}>
-              <Field label="Calorías (kcal)" value={kcal} onChange={setKcal} />
-              <Field label="Proteína (g)" value={protein} onChange={setProtein} />
-            </View>
-            <View style={styles.row}>
-              <Field label="Carbos (g)" value={carbs} onChange={setCarbs} />
-              <Field label="Grasa (g)" value={fat} onChange={setFat} />
-            </View>
+
             <Pressable
               style={[styles.secondaryBtn, !estimate && styles.btnDisabled]}
               onPress={applyEstimate}
               disabled={!estimate}>
               <Text style={styles.secondaryText}>
                 {estimate
-                  ? `Usar estimación (${estimate.targetCalories} kcal)`
+                  ? `Usar estimación recomendada (${estimate.targetCalories} kcal)`
                   : 'Usar estimación'}
               </Text>
             </Pressable>
+          </View>
+
+          {!estimate ? (
+            <View style={styles.card}>
+              <Text style={styles.help}>
+                Completa tus datos personales en la pestaña «Datos» para ver la estimación.
+              </Text>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.sectionTitle}>
+                {isManual ? 'Estimación recomendada' : 'Gasto energético'}
+              </Text>
+              <View style={styles.card}>
+                {isManual && (
+                  <>
+                    <View style={styles.hero}>
+                      <Text style={styles.heroLabel}>Estimación recomendada</Text>
+                      <View style={styles.heroRow}>
+                        <Text style={styles.heroValue}>{estimate.targetCalories}</Text>
+                        <Text style={styles.heroUnit}>kcal</Text>
+                      </View>
+                      {estimate.deficitSurplus !== 0 && (
+                        <Text style={styles.heroNote}>
+                          {estimate.deficitSurplus < 0
+                            ? `Déficit de ${Math.abs(estimate.deficitSurplus)} kcal para definir`
+                            : `Superávit de ${estimate.deficitSurplus} kcal para volumen`}
+                        </Text>
+                      )}
+                    </View>
+                    <View style={styles.divider} />
+                  </>
+                )}
+
+                <View style={styles.statRow}>
+                  <View style={styles.stat}>
+                    <Text style={styles.statLabel}>Metabolismo (BMR)</Text>
+                    <Text style={styles.statValue}>{estimate.bmr} kcal</Text>
+                  </View>
+                  <View style={styles.stat}>
+                    <Text style={styles.statLabel}>Gasto diario (TDEE)</Text>
+                    <Text style={styles.statValue}>{estimate.tdee} kcal</Text>
+                  </View>
+                </View>
+
+                {isManual && (
+                  <>
+                    <View style={styles.divider} />
+                    <MacroBars
+                      protein={estimate.protein}
+                      carbs={estimate.carbs}
+                      fat={estimate.fat}
+                      totalKcal={estimate.targetCalories}
+                    />
+                  </>
+                )}
+
+                {estimate.warnings.map((w) => (
+                  <Text key={w} style={styles.estimateWarn}>
+                    ⚠️ {w}
+                  </Text>
+                ))}
+              </View>
+            </>
+          )}
+
+          <Text style={styles.sectionTitle}>Tipo de objetivo</Text>
+          <View style={styles.card}>
+            <Text style={styles.label}>Tipo</Text>
+            <ChipGroup options={GOAL_OPTIONS} value={goalType} onChange={setGoalType} />
+            <Text style={styles.label}>Nivel de actividad</Text>
+            <ChipGroup options={ACTIVITY_OPTIONS} value={activity} onChange={setActivity} />
           </View>
         </>
       ) : (
@@ -356,6 +556,9 @@ export function ProfileForm({ mode }: { mode: ProfileFormMode }) {
                   style={styles.input}
                   value={carbRationGrams}
                   onChangeText={setCarbRationGrams}
+                  onEndEditing={() => {
+                    void persistRationGrams(carbRationGrams);
+                  }}
                   keyboardType="numeric"
                   placeholder="10"
                   placeholderTextColor={colors.textTertiary}
@@ -367,7 +570,10 @@ export function ProfileForm({ mode }: { mode: ProfileFormMode }) {
                       <Pressable
                         key={g}
                         style={[styles.chip, selected && styles.chipSelected]}
-                        onPress={() => setCarbRationGrams(String(g))}>
+                        onPress={() => {
+                          setCarbRationGrams(String(g));
+                          void persistRationGrams(String(g));
+                        }}>
                         <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
                           {g} g
                         </Text>
@@ -448,6 +654,10 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     marginBottom: 6,
   },
+  helpManual: {
+    color: '#B26A00',
+    fontWeight: '700',
+  },
   input: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -457,6 +667,69 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.text,
     backgroundColor: colors.background,
+  },
+  macroStepperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  macroStepperLabel: {
+    width: 56,
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  macroStepBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 7,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  macroStepperValue: {
+    width: 50,
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  macroStepperTrack: {
+    flex: 1,
+    height: 6,
+    backgroundColor: colors.track,
+    borderRadius: 9999,
+    overflow: 'hidden',
+    marginLeft: 4,
+  },
+  macroStepperFill: {
+    height: '100%',
+    borderRadius: 9999,
+  },
+  heroHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  badge: {
+    fontSize: 10,
+    fontWeight: '700',
+    paddingHorizontal: 7,
+    paddingVertical: 1,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  badgeManual: {
+    color: '#B26A00',
+    backgroundColor: 'rgba(178, 106, 0, 0.12)',
+  },
+  badgeRecommended: {
+    color: colors.carbs,
+    backgroundColor: 'rgba(76, 175, 80, 0.15)',
+  },
+  metasHelp: {
+    marginTop: 4,
   },
   chips: {
     flexDirection: 'row',

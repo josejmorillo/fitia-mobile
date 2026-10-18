@@ -62,95 +62,97 @@ export function MealItem({
   }
 
   return (
-    <View style={[styles.swipeWrapper, isDragging && styles.draggingWrapper]}>
-      <Swipeable
-        ref={swipeableRef}
-        renderLeftActions={() =>
-          onCopy ? (
-            <Pressable
-              style={styles.copyAction}
-              onPress={() => {
-                onCopy(item);
-                swipeableRef.current?.close();
-              }}>
-              <Ionicons name="copy-outline" size={18} color="#1A1A1A" />
-              <Text style={styles.copyActionText}>Copiar</Text>
+    <View style={[isDragging && styles.draggingWrapper]}>
+      <View style={styles.swipeWrapper}>
+        <Swipeable
+          ref={swipeableRef}
+          renderLeftActions={() =>
+            onCopy ? (
+              <Pressable
+                style={styles.copyAction}
+                onPress={() => {
+                  onCopy(item);
+                  swipeableRef.current?.close();
+                }}>
+                <Ionicons name="copy-outline" size={18} color="#1A1A1A" />
+                <Text style={styles.copyActionText}>Copiar</Text>
+              </Pressable>
+            ) : null
+          }
+          overshootLeft={false}>
+          <Pressable
+            style={[
+              styles.container,
+              !consumed && styles.notConsumed,
+              isDragging && styles.draggingContainer,
+            ]}
+            onLongPress={drag}
+            delayLongPress={200}>
+            <Pressable style={styles.checkIcon} onPress={() => onToggle(item.id)} hitSlop={8}>
+              <Ionicons
+                name={consumed ? 'checkmark-circle' : 'ellipse-outline'}
+                size={22}
+                color={consumed ? colors.primary : colors.border}
+              />
             </Pressable>
-          ) : null
-        }
-        overshootLeft={false}>
-        <Pressable
-          style={[
-            styles.container,
-            !consumed && styles.notConsumed,
-            isDragging && styles.draggingContainer,
-          ]}
-          onLongPress={drag}
-          delayLongPress={200}>
-          <Pressable style={styles.checkIcon} onPress={() => onToggle(item.id)} hitSlop={8}>
-            <Ionicons
-              name={consumed ? 'checkmark-circle' : 'ellipse-outline'}
-              size={22}
-              color={consumed ? colors.primary : colors.border}
-            />
-          </Pressable>
 
-          <View style={styles.iconBox}>
-            <Text style={styles.emoji}>{emoji}</Text>
-          </View>
+            <View style={styles.iconBox}>
+              <Text style={styles.emoji}>{emoji}</Text>
+            </View>
 
-          <View style={styles.content}>
-            <View style={styles.nameRow}>
-              <View style={styles.nameLine}>
-                <Text style={styles.name} numberOfLines={2}>
-                  {name}
-                </Text>
-                {canExpand && (
-                  <Pressable onPress={() => setExpanded((e) => !e)} hitSlop={8}>
-                    <Ionicons
-                      name={expanded ? 'chevron-up' : 'chevron-down'}
-                      size={16}
-                      color={colors.textSecondary}
-                    />
+            <View style={styles.content}>
+              <View style={styles.nameRow}>
+                <View style={styles.nameLine}>
+                  <Text style={styles.name} numberOfLines={2}>
+                    {name}
+                  </Text>
+                  {canExpand && (
+                    <Pressable onPress={() => setExpanded((e) => !e)} hitSlop={8}>
+                      <Ionicons
+                        name={expanded ? 'chevron-up' : 'chevron-down'}
+                        size={16}
+                        color={colors.textSecondary}
+                      />
+                    </Pressable>
+                  )}
+                </View>
+                {subtitle ? (
+                  <Text style={styles.brand} numberOfLines={1}>
+                    {subtitle}
+                  </Text>
+                ) : null}
+              </View>
+              <View style={styles.detailsRow}>
+                <Text style={styles.details}>{Math.round(macros.calories)} kcal • </Text>
+                <Pressable onPress={() => onAmountPress(item)}>
+                  <Text style={styles.amountLink}>{amountLabel}</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={styles.right}>
+              <View style={styles.macros}>
+                <Text style={[styles.macro, { color: colors.protein }]}>{Math.round(macros.protein)}P</Text>
+                <Text style={[styles.macro, { color: colors.carbs }]}>{Math.round(macros.carbs)}C{rationLabel}</Text>
+                <Text style={[styles.macro, { color: colors.fat }]}>{Math.round(macros.fat)}G</Text>
+              </View>
+              <View style={styles.actionButtons}>
+                {onEdit && (food || recipe) && (
+                  <Pressable style={styles.editBtn} onPress={() => onEdit(item)} hitSlop={6}>
+                    <Ionicons name="create-outline" size={15} color="#007AFF" />
                   </Pressable>
                 )}
-              </View>
-              {subtitle ? (
-                <Text style={styles.brand} numberOfLines={1}>
-                  {subtitle}
-                </Text>
-              ) : null}
-            </View>
-            <View style={styles.detailsRow}>
-              <Text style={styles.details}>{Math.round(macros.calories)} kcal • </Text>
-              <Pressable onPress={() => onAmountPress(item)}>
-                <Text style={styles.amountLink}>{amountLabel}</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          <View style={styles.right}>
-            <View style={styles.macros}>
-              <Text style={[styles.macro, { color: colors.protein }]}>{Math.round(macros.protein)}P</Text>
-              <Text style={[styles.macro, { color: colors.carbs }]}>{Math.round(macros.carbs)}C{rationLabel}</Text>
-              <Text style={[styles.macro, { color: colors.fat }]}>{Math.round(macros.fat)}G</Text>
-            </View>
-            <View style={styles.actionButtons}>
-              {onEdit && (food || recipe) && (
-                <Pressable style={styles.editBtn} onPress={() => onEdit(item)} hitSlop={6}>
-                  <Ionicons name="create-outline" size={15} color="#007AFF" />
+                <Pressable style={styles.deleteBtn} onPress={() => onDelete(item.id)} hitSlop={6}>
+                  <Ionicons name="trash-outline" size={15} color="#ff4d4d" />
                 </Pressable>
-              )}
-              <Pressable style={styles.deleteBtn} onPress={() => onDelete(item.id)} hitSlop={6}>
-                <Ionicons name="trash-outline" size={15} color="#ff4d4d" />
-              </Pressable>
+              </View>
             </View>
-          </View>
-        </Pressable>
-      </Swipeable>
+          </Pressable>
+        </Swipeable>
+      </View>
 
       {canExpand && expanded && recipe && (
-        <View style={styles.ingredientsBox}>
+        <View style={styles.ingredientsCard}>
           {recipe.ingredients.map((ing) => {
             const ingFood = ing.food;
             if (!ingFood) return null;
@@ -310,14 +312,16 @@ const styles = StyleSheet.create({
   deleteBtn: {
     padding: 2,
   },
-  ingredientsBox: {
-    backgroundColor: colors.surface,
+  ingredientsCard: {
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
     paddingHorizontal: 12,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingTop: 10,
+    paddingBottom: 10,
     gap: 10,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    marginTop: 6,
   },
   ingredientRow: {
     flexDirection: 'row',

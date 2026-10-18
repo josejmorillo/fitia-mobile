@@ -1,4 +1,4 @@
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { NestedReorderableList } from 'react-native-reorderable-list';
 
@@ -105,7 +105,7 @@ export function MealSection({
 
         {onRepeat && (
           <Pressable style={styles.repeatBtn} onPress={() => onRepeat(mealType)} hitSlop={8}>
-            <MaterialIcons name="all-inclusive" size={22} color={colors.primaryDark} />
+            <Ionicons name="repeat" size={18} color={colors.primaryDark} />
           </Pressable>
         )}
         <Pressable style={styles.addBtn} onPress={() => onAdd(mealType)} hitSlop={8}>
@@ -177,9 +177,14 @@ const styles = StyleSheet.create({
     minWidth: 72,
   },
   ration: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.carbs,
+    backgroundColor: 'rgba(76, 175, 80, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    overflow: 'hidden',
     flexShrink: 0,
   },
   miniBars: {
@@ -193,7 +198,7 @@ const styles = StyleSheet.create({
   },
   miniLabel: {
     fontSize: 10,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   miniTrack: {
     height: 5,

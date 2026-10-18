@@ -106,3 +106,23 @@ export async function updateProfile(input: ProfileInput): Promise<void> {
     ]
   );
 }
+
+/** Persiste solo el interruptor de modo diabetes, sin depender de "Guardar". */
+export async function updateDiabetesMode(enabled: boolean): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync('INSERT OR IGNORE INTO user_profile (id) VALUES (1)');
+  await db.runAsync(
+    "UPDATE user_profile SET diabetes_mode_enabled = ?, updated_at = datetime('now') WHERE id = 1",
+    [enabled ? 1 : 0]
+  );
+}
+
+/** Persiste solo los gramos por ración, sin depender de "Guardar". */
+export async function updateCarbRationGrams(grams: number): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync('INSERT OR IGNORE INTO user_profile (id) VALUES (1)');
+  await db.runAsync(
+    "UPDATE user_profile SET carb_ration_grams = ?, updated_at = datetime('now') WHERE id = 1",
+    [grams]
+  );
+}
