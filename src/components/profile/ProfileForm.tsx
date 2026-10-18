@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { FormScrollView } from '@/components/common/FormScrollView';
@@ -28,6 +28,7 @@ import {
   DEFAULT_CARB_RATION_GRAMS,
   parseDecimalInput,
 } from '@/utils/rations';
+import { useHoldRepeat } from '@/utils/useHoldRepeat';
 import type { UserProfile } from '@/utils/types';
 
 type Option<T extends string> = { key: T; label: string };
@@ -109,55 +110,6 @@ function Field({
 function parseNum(s: string): number | null {
   const n = parseFloat(s.replace(',', '.'));
   return isNaN(n) ? null : n;
-}
-
-/**
- * Pulsación con auto-repetición y aceleración: el primer paso es inmediato y,
- * mientras se mantiene pulsado, se repite cada vez más rápido.
- */
-function useHoldRepeat(onStep: () => void) {
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const delay = useRef(350);
-  const stepRef = useRef(onStep);
-
-  useEffect(() => {
-    stepRef.current = onStep;
-  }, [onStep]);
-
-  function clear() {
-    if (timer.current) {
-      clearTimeout(timer.current);
-      timer.current = null;
-    }
-  }
-
-  function schedule() {
-    timer.current = setTimeout(() => {
-      stepRef.current();
-      delay.current = Math.max(60, Math.round(delay.current * 0.75));
-      schedule();
-    }, delay.current);
-  }
-
-  function start() {
-    clear();
-    delay.current = 350;
-    stepRef.current();
-    schedule();
-  }
-
-  function stop() {
-    clear();
-    delay.current = 350;
-  }
-
-  useEffect(() => {
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-    };
-  }, []);
-
-  return { start, stop };
 }
 
 function MacroStepperRow({

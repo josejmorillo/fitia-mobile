@@ -7,6 +7,7 @@ import { useIsActive, useReorderableDrag } from 'react-native-reorderable-list';
 import { colors } from '@/utils/colors';
 import { foodMacros, scaleMacros } from '@/utils/macros';
 import { calcCarbRations, formatRations } from '@/utils/rations';
+import { useHoldRepeat } from '@/utils/useHoldRepeat';
 import type { DailyLogItem } from '@/utils/types';
 
 interface MealItemProps {
@@ -16,6 +17,7 @@ interface MealItemProps {
   onAmountPress: (item: DailyLogItem) => void;
   onEdit?: (item: DailyLogItem) => void;
   onCopy?: (item: DailyLogItem) => void;
+  onQuickAmount?: (item: DailyLogItem, delta: number) => void;
   showRations?: boolean;
   gramsPerRation?: number;
 }
@@ -27,6 +29,7 @@ export function MealItem({
   onAmountPress,
   onEdit,
   onCopy,
+  onQuickAmount,
   showRations = false,
   gramsPerRation,
 }: MealItemProps) {
@@ -34,6 +37,8 @@ export function MealItem({
   const drag = useReorderableDrag();
   const isDragging = useIsActive();
   const [expanded, setExpanded] = useState(false);
+  const decAmount = useHoldRepeat(() => onQuickAmount?.(item, -5));
+  const incAmount = useHoldRepeat(() => onQuickAmount?.(item, 5));
   const food = item.food;
   const recipe = item.recipe;
   if (!food && !recipe) return null;
@@ -123,10 +128,32 @@ export function MealItem({
                 ) : null}
               </View>
               <View style={styles.detailsRow}>
-                <Text style={styles.details}>{Math.round(macros.calories)} kcal • </Text>
-                <Pressable onPress={() => onAmountPress(item)}>
-                  <Text style={styles.amountLink}>{amountLabel}</Text>
-                </Pressable>
+                <Text style={styles.details}>{Math.round(macros.calories)} kcal</Text>
+                {onQuickAmount ? (
+                  <View style={styles.quickAmount}>
+                    <Pressable
+                      style={styles.quickBtn}
+                      onPressIn={decAmount.start}
+                      onPressOut={decAmount.stop}
+                      hitSlop={6}>
+                      <Ionicons name="remove" size={12} color={colors.primaryDark} />
+                    </Pressable>
+                    <Pressable onPress={() => onAmountPress(item)} hitSlop={4}>
+                      <Text style={styles.amountLink}>{item.amount} g</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.quickBtn}
+                      onPressIn={incAmount.start}
+                      onPressOut={incAmount.stop}
+                      hitSlop={6}>
+                      <Ionicons name="add" size={12} color={colors.primaryDark} />
+                    </Pressable>
+                  </View>
+                ) : (
+                  <Pressable onPress={() => onAmountPress(item)}>
+                    <Text style={styles.amountLink}>{amountLabel}</Text>
+                  </Pressable>
+                )}
               </View>
             </View>
 
@@ -272,7 +299,21 @@ const styles = StyleSheet.create({
   detailsRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
     marginTop: 1,
+  },
+  quickAmount: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  quickBtn: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   details: {
     fontSize: 11,

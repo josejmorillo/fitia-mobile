@@ -23,6 +23,7 @@ interface MealSectionProps {
   onCopy?: (item: DailyLogItem) => void;
   onRepeat?: (mealType: MealType) => void;
   onReorder?: (mealType: MealType, orderedIds: number[]) => void;
+  onQuickAmount?: (item: DailyLogItem, delta: number) => void;
   showRations?: boolean;
   gramsPerRation?: number;
 }
@@ -48,6 +49,7 @@ export function MealSection({
   onCopy,
   onRepeat,
   onReorder,
+  onQuickAmount,
   showRations = false,
   gramsPerRation,
 }: MealSectionProps) {
@@ -88,7 +90,7 @@ export function MealSection({
               <View key={m.key} style={styles.miniBar}>
                 <Text style={styles.miniLabel}>
                   <Text style={{ color: m.color, fontWeight: '700' }}>{m.key}</Text>{' '}
-                  <Text style={{ color: colors.textTertiary }}>{Math.round(pct)}%</Text>
+                  <Text style={{ color: colors.textTertiary }}>{Math.round(m.value)}g</Text>
                 </Text>
                 <View style={styles.miniTrack}>
                   <View
@@ -136,6 +138,7 @@ export function MealSection({
               onAmountPress={onAmountPress}
               onEdit={onEdit}
               onCopy={onCopy}
+              onQuickAmount={onQuickAmount}
               showRations={showRations}
               gramsPerRation={gramsPerRation}
             />

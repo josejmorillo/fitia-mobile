@@ -30,9 +30,9 @@ import { getOrCreateProfile } from '@/services/profileService';
 import { colors } from '@/utils/colors';
 import { MEAL_TYPES } from '@/utils/constants';
 import { addDays, todayString } from '@/utils/dates';
-import { sumMacros } from '@/utils/macros';
+import { foodMacros, ingredientTotals, recipeMacros, sumMacros } from '@/utils/macros';
 import { calcCarbRations, formatRations } from '@/utils/rations';
-import type { DailyLogItem, Food, MealType, Recipe, UserProfile } from '@/utils/types';
+import type { DailyLogItem, Food, MacroSummary, MealType, Recipe, UserProfile } from '@/utils/types';
 
 export default function PlanScreen() {
   const router = useRouter();
@@ -94,6 +94,30 @@ export default function PlanScreen() {
   async function reload() {
     if (logId == null) return;
     setItems(await getDailyLogItems(logId));
+  }
+
+  function macrosForAmount(item: DailyLogItem, amount: number): MacroSummary {
+    if (item.food) return foodMacros(item.food, amount);
+    if (item.recipe) {
+      const totals = ingredientTotals(
+        item.recipe.ingredients
+          .filter((i) => i.food)
+          .map((i) => ({ food: i.food!, amount: i.amount }))
+      );
+      return recipeMacros(totals, amount);
+    }
+    return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+  }
+
+  async function handleQuickAmount(item: DailyLogItem, delta: number) {
+    const newAmount = Math.max(0, item.amount + delta);
+    if (newAmount === item.amount) return;
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === item.id ? { ...i, amount: newAmount, macros: macrosForAmount(i, newAmount) } : i
+      )
+    );
+    await updateItemAmount(item.id, newAmount);
   }
 
   async function handleSelectFood(food: Food) {
@@ -257,6 +281,7 @@ export default function PlanScreen() {
             onCopy={handleCopy}
             onRepeat={setRepeatMealType}
             onReorder={handleReorder}
+            onQuickAmount={handleQuickAmount}
             showRations={showRations}
             gramsPerRation={gramsPerRation}
           />
