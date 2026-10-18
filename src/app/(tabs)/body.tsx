@@ -35,7 +35,7 @@ export default function BodyScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editing, setEditing] = useState<BodyMeasurement | null>(null);
   const [selected, setSelected] = useState<Selection>('weight');
-  const [tab, setTab] = useState<'progreso' | 'objetivo'>('progreso');
+  const [tab, setTab] = useState<'objetivo' | 'progreso' | 'datos'>('objetivo');
 
   useFocusEffect(
     useCallback(() => {
@@ -120,6 +120,13 @@ export default function BodyScreen() {
 
       <View style={styles.segmented}>
         <Pressable
+          style={[styles.segment, tab === 'objetivo' && styles.segmentActive]}
+          onPress={() => setTab('objetivo')}>
+          <Text style={[styles.segmentText, tab === 'objetivo' && styles.segmentTextActive]}>
+            Objetivo
+          </Text>
+        </Pressable>
+        <Pressable
           style={[styles.segment, tab === 'progreso' && styles.segmentActive]}
           onPress={() => setTab('progreso')}>
           <Text style={[styles.segmentText, tab === 'progreso' && styles.segmentTextActive]}>
@@ -127,16 +134,18 @@ export default function BodyScreen() {
           </Text>
         </Pressable>
         <Pressable
-          style={[styles.segment, tab === 'objetivo' && styles.segmentActive]}
-          onPress={() => setTab('objetivo')}>
-          <Text style={[styles.segmentText, tab === 'objetivo' && styles.segmentTextActive]}>
-            Objetivo
+          style={[styles.segment, tab === 'datos' && styles.segmentActive]}
+          onPress={() => setTab('datos')}>
+          <Text style={[styles.segmentText, tab === 'datos' && styles.segmentTextActive]}>
+            Datos
           </Text>
         </Pressable>
       </View>
 
       {tab === 'objetivo' ? (
-        <ProfileForm />
+        <ProfileForm key="objetivo" mode="objetivo" />
+      ) : tab === 'datos' ? (
+        <ProfileForm key="datos" mode="datos" />
       ) : (
         <>
           <ScrollView contentContainerStyle={styles.scrollContent}>

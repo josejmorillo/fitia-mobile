@@ -8,7 +8,6 @@ import { DaySelector } from '@/components/calendar/DaySelector';
 import { FoodPickerModal } from '@/components/food/FoodPickerModal';
 import { MacroBar } from '@/components/macros/MacroBar';
 import { MacroCircle } from '@/components/macros/MacroCircle';
-import { RationBar } from '@/components/macros/RationBar';
 import { AmountModal } from '@/components/meals/AmountModal';
 import { FoodAmountModal } from '@/components/meals/FoodAmountModal';
 import { MealSection } from '@/components/meals/MealSection';
@@ -222,6 +221,7 @@ export default function PlanScreen() {
               consumed={totalMacros.carbs}
               goal={goalCarbs}
               color={colors.carbs}
+              ration={dayRation ?? undefined}
             />
             <MacroBar
               label="Grasas"
@@ -229,7 +229,6 @@ export default function PlanScreen() {
               goal={goalFat}
               color={colors.fat}
             />
-            {dayRation != null && <RationBar ration={dayRation} />}
           </View>
         </View>
 
@@ -245,9 +244,16 @@ export default function PlanScreen() {
             onDelete={handleDelete}
             onToggle={handleToggle}
             onAmountPress={setAmountItem}
-            onEdit={(foodId) =>
-              router.push({ pathname: '/food/[id]', params: { id: String(foodId) } })
-            }
+            onEdit={(item) => {
+              if (item.food) {
+                router.push({ pathname: '/food/[id]', params: { id: String(item.food.id) } });
+              } else if (item.recipe) {
+                router.push({
+                  pathname: '/recipe/edit/[id]',
+                  params: { id: String(item.recipe.id) },
+                });
+              }
+            }}
             onCopy={handleCopy}
             onRepeat={setRepeatMealType}
             onReorder={handleReorder}

@@ -15,8 +15,11 @@ import {
   DEFAULT_CARB_RATION_GRAMS,
   parseDecimalInput,
 } from '@/utils/rations';
+import type { UserProfile } from '@/utils/types';
 
 type Option<T extends string> = { key: T; label: string };
+
+export type ProfileFormMode = 'objetivo' | 'datos';
 
 const GENDER_OPTIONS: Option<Gender>[] = [
   { key: 'male', label: 'Hombre' },
@@ -95,7 +98,8 @@ function parseNum(s: string): number | null {
   return isNaN(n) ? null : n;
 }
 
-export function ProfileForm() {
+export function ProfileForm({ mode }: { mode: ProfileFormMode }) {
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
   const [age, setAge] = useState('');
@@ -112,6 +116,7 @@ export function ProfileForm() {
 
   useEffect(() => {
     getOrCreateProfile().then((p) => {
+      setProfile(p);
       if (p.weight != null) setWeight(String(p.weight));
       if (p.height != null) setHeight(String(p.height));
       if (p.age != null) setAge(String(p.age));
@@ -130,17 +135,17 @@ export function ProfileForm() {
   const wNum = parseNum(weight);
   const hNum = parseNum(height);
   const aNum = parseNum(age);
-  const estimate =
-    wNum != null && hNum != null && aNum != null
-      ? calculateGoals({
-          weight: wNum,
-          height: hNum,
-          age: aNum,
-          gender,
-          goalType,
-          activityLevel: activity,
-        })
-      : null;
+  const hasPersonalData = wNum != null && hNum != null && aNum != null;
+  const estimate = hasPersonalData
+    ? calculateGoals({
+        weight: wNum,
+        height: hNum,
+        age: aNum,
+        gender,
+        goalType,
+        activityLevel: activity,
+      })
+    : null;
 
   function applyEstimate() {
     if (!estimate) return;
@@ -162,12 +167,12 @@ export function ProfileForm() {
   }
 
   async function handleSave() {
-    const w = parseNum(weight);
-    const h = parseNum(height);
-    const a = parseNum(age);
-    if (w == null || h == null || a == null) {
-      Alert.alert('Faltan datos', 'Peso, altura y edad son obligatorios.');
-      return;
+    const base = profile;
+    if (mode === 'datos') {
+      if (wNum == null || hNum == null || aNum == null) {
+        Alert.alert('Faltan datos', 'Peso, altura y edad son obligatorios.');
+        return;
+      }
     }
     const rationGrams = parseDecimalInput(carbRationGrams);
     if (diabetesMode && (rationGrams == null || rationGrams <= 0)) {
@@ -178,20 +183,28 @@ export function ProfileForm() {
       return;
     }
     await updateProfile({
-      weight: w,
-      height: h,
-      age: a,
-      gender,
-      goalCalories: parseNum(kcal),
-      goalProtein: parseNum(protein),
-      goalCarbs: parseNum(carbs),
-      goalFat: parseNum(fat),
-      calcGoalType: goalType,
-      calcActivityLevel: activity,
-      calcSpeed: null,
-      diabetesModeEnabled: diabetesMode,
+      // Datos personales: se editan en la pestaña Datos.
+      weight: mode === 'datos' ? parseNum(weight) : (base?.weight ?? null),
+      height: mode === 'datos' ? parseNum(height) : (base?.height ?? null),
+      age: mode === 'datos' ? parseNum(age) : (base?.age ?? null),
+      gender: mode === 'datos' ? gender : (base?.gender ?? null),
+      // Objetivos: se editan en la pestaña Objetivo.
+      goalCalories: mode === 'objetivo' ? parseNum(kcal) : (base?.goalCalories ?? null),
+      goalProtein: mode === 'objetivo' ? parseNum(protein) : (base?.goalProtein ?? null),
+      goalCarbs: mode === 'objetivo' ? parseNum(carbs) : (base?.goalCarbs ?? null),
+      goalFat: mode === 'objetivo' ? parseNum(fat) : (base?.goalFat ?? null),
+      calcGoalType: mode === 'objetivo' ? goalType : (base?.calcGoalType ?? null),
+      calcActivityLevel: mode === 'objetivo' ? activity : (base?.calcActivityLevel ?? null),
+      calcSpeed: base?.calcSpeed ?? null,
+      // Modo diabetes: se edita en la pestaña Datos.
+      diabetesModeEnabled:
+        mode === 'datos' ? diabetesMode : (base?.diabetesModeEnabled ?? false),
       carbRationGrams:
-        rationGrams != null && rationGrams > 0 ? rationGrams : DEFAULT_CARB_RATION_GRAMS,
+        mode === 'datos'
+          ? rationGrams != null && rationGrams > 0
+            ? rationGrams
+            : DEFAULT_CARB_RATION_GRAMS
+          : (base?.carbRationGrams ?? DEFAULT_CARB_RATION_GRAMS),
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -199,166 +212,178 @@ export function ProfileForm() {
 
   return (
     <FormScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.sectionTitle}>Datos personales</Text>
-      <View style={styles.card}>
-        <View style={styles.row}>
-          <Field label="Peso (kg)" value={weight} onChange={setWeight} placeholder="75" />
-          <Field label="Altura (cm)" value={height} onChange={setHeight} placeholder="175" />
-        </View>
-        <View style={styles.row}>
-          <Field label="Edad" value={age} onChange={setAge} placeholder="30" />
-          <View style={styles.cell} />
-        </View>
-        <Text style={styles.label}>Sexo</Text>
-        <ChipGroup options={GENDER_OPTIONS} value={gender} onChange={setGender} />
-      </View>
-
-      <Text style={styles.sectionTitle}>Objetivo</Text>
-      <View style={styles.card}>
-        <Text style={styles.label}>Tipo</Text>
-        <ChipGroup options={GOAL_OPTIONS} value={goalType} onChange={setGoalType} />
-        <Text style={styles.label}>Nivel de actividad</Text>
-        <ChipGroup options={ACTIVITY_OPTIONS} value={activity} onChange={setActivity} />
-      </View>
-
-      {estimate ? (
+      {mode === 'objetivo' ? (
         <>
           <Text style={styles.sectionTitle}>Estimación</Text>
-          <View style={styles.card}>
-            <View style={styles.hero}>
-              <Text style={styles.heroLabel}>Calorías objetivo</Text>
-              <View style={styles.heroRow}>
-                <Text style={styles.heroValue}>{estimate.targetCalories}</Text>
-                <Text style={styles.heroUnit}>kcal</Text>
-              </View>
-              {estimate.deficitSurplus !== 0 && (
-                <Text style={styles.heroNote}>
-                  {estimate.deficitSurplus < 0
-                    ? `Déficit de ${Math.abs(estimate.deficitSurplus)} kcal para definir`
-                    : `Superávit de ${estimate.deficitSurplus} kcal para volumen`}
-                </Text>
-              )}
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.statRow}>
-              <View style={styles.stat}>
-                <Text style={styles.statLabel}>Metabolismo (BMR)</Text>
-                <Text style={styles.statValue}>{estimate.bmr} kcal</Text>
-              </View>
-              <View style={styles.stat}>
-                <Text style={styles.statLabel}>Gasto diario (TDEE)</Text>
-                <Text style={styles.statValue}>{estimate.tdee} kcal</Text>
-              </View>
-            </View>
-
-            <View style={styles.divider} />
-
-            {[
-              { label: 'Proteína', value: estimate.protein, color: colors.protein, factor: 4 },
-              { label: 'Carbos', value: estimate.carbs, color: colors.carbs, factor: 4 },
-              { label: 'Grasa', value: estimate.fat, color: colors.fat, factor: 9 },
-            ].map((m) => {
-              const pct =
-                estimate.targetCalories > 0
-                  ? Math.min(((m.value * m.factor) / estimate.targetCalories) * 100, 100)
-                  : 0;
-              return (
-                <View key={m.label} style={styles.macroRow}>
-                  <Text style={styles.macroLabel}>{m.label}</Text>
-                  <Text style={styles.macroValue}>{m.value} g</Text>
-                  <View style={styles.macroTrack}>
-                    <View
-                      style={[styles.macroFill, { width: `${pct}%`, backgroundColor: m.color }]}
-                    />
-                  </View>
+          {estimate ? (
+            <View style={styles.card}>
+              <View style={styles.hero}>
+                <Text style={styles.heroLabel}>Calorías objetivo</Text>
+                <View style={styles.heroRow}>
+                  <Text style={styles.heroValue}>{estimate.targetCalories}</Text>
+                  <Text style={styles.heroUnit}>kcal</Text>
                 </View>
-              );
-            })}
+                {estimate.deficitSurplus !== 0 && (
+                  <Text style={styles.heroNote}>
+                    {estimate.deficitSurplus < 0
+                      ? `Déficit de ${Math.abs(estimate.deficitSurplus)} kcal para definir`
+                      : `Superávit de ${estimate.deficitSurplus} kcal para volumen`}
+                  </Text>
+                )}
+              </View>
 
-            {estimate.warnings.map((w) => (
-              <Text key={w} style={styles.estimateWarn}>
-                ⚠️ {w}
-              </Text>
-            ))}
-          </View>
-        </>
-      ) : null}
+              <View style={styles.divider} />
 
-      <Text style={styles.sectionTitle}>Tus metas</Text>
-      <View style={styles.card}>
-        <Text style={styles.help}>
-          Tus objetivos actuales. Puedes editarlos a mano o copiar la estimación.
-        </Text>
-        <View style={styles.row}>
-          <Field label="Calorías (kcal)" value={kcal} onChange={setKcal} />
-          <Field label="Proteína (g)" value={protein} onChange={setProtein} />
-        </View>
-        <View style={styles.row}>
-          <Field label="Carbos (g)" value={carbs} onChange={setCarbs} />
-          <Field label="Grasa (g)" value={fat} onChange={setFat} />
-        </View>
-        <Pressable
-          style={[styles.secondaryBtn, !estimate && styles.btnDisabled]}
-          onPress={applyEstimate}
-          disabled={!estimate}>
-          <Text style={styles.secondaryText}>
-            {estimate ? `Usar estimación (${estimate.targetCalories} kcal)` : 'Usar estimación'}
-          </Text>
-        </Pressable>
-      </View>
+              <View style={styles.statRow}>
+                <View style={styles.stat}>
+                  <Text style={styles.statLabel}>Metabolismo (BMR)</Text>
+                  <Text style={styles.statValue}>{estimate.bmr} kcal</Text>
+                </View>
+                <View style={styles.stat}>
+                  <Text style={styles.statLabel}>Gasto diario (TDEE)</Text>
+                  <Text style={styles.statValue}>{estimate.tdee} kcal</Text>
+                </View>
+              </View>
 
-      <Text style={styles.sectionTitle}>Raciones de hidratos de carbono</Text>
-      <View style={styles.card}>
-        <View style={styles.switchRow}>
-          <View style={styles.switchTextWrap}>
-            <Text style={styles.switchTitle}>Modo diabetes</Text>
-            <Text style={styles.help}>
-              Muestra las raciones de hidratos de carbono (R) junto a los carbohidratos.
-            </Text>
-          </View>
-          <Switch
-            value={diabetesMode}
-            onValueChange={handleToggleDiabetes}
-            trackColor={{ false: colors.border, true: colors.primary }}
-            thumbColor="#FFFFFF"
-          />
-        </View>
+              <View style={styles.divider} />
 
-        {diabetesMode && (
-          <>
-            <Text style={styles.label}>Gramos por ración</Text>
-            <TextInput
-              style={styles.input}
-              value={carbRationGrams}
-              onChangeText={setCarbRationGrams}
-              keyboardType="numeric"
-              placeholder="10"
-              placeholderTextColor={colors.textTertiary}
-            />
-            <View style={styles.chips}>
-              {CARB_RATION_OPTIONS.map((g) => {
-                const selected = carbRationGrams === String(g);
+              {[
+                { label: 'Proteína', value: estimate.protein, color: colors.protein, factor: 4 },
+                { label: 'Carbos', value: estimate.carbs, color: colors.carbs, factor: 4 },
+                { label: 'Grasa', value: estimate.fat, color: colors.fat, factor: 9 },
+              ].map((m) => {
+                const pct =
+                  estimate.targetCalories > 0
+                    ? Math.min(((m.value * m.factor) / estimate.targetCalories) * 100, 100)
+                    : 0;
                 return (
-                  <Pressable
-                    key={g}
-                    style={[styles.chip, selected && styles.chipSelected]}
-                    onPress={() => setCarbRationGrams(String(g))}>
-                    <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-                      {g} g
-                    </Text>
-                  </Pressable>
+                  <View key={m.label} style={styles.macroRow}>
+                    <Text style={styles.macroLabel}>{m.label}</Text>
+                    <Text style={styles.macroValue}>{m.value} g</Text>
+                    <View style={styles.macroTrack}>
+                      <View
+                        style={[styles.macroFill, { width: `${pct}%`, backgroundColor: m.color }]}
+                      />
+                    </View>
+                  </View>
                 );
               })}
+
+              {estimate.warnings.map((w) => (
+                <Text key={w} style={styles.estimateWarn}>
+                  ⚠️ {w}
+                </Text>
+              ))}
             </View>
+          ) : (
+            <View style={styles.card}>
+              <Text style={styles.help}>
+                Completa tus datos personales en la pestaña «Datos» para ver la estimación.
+              </Text>
+            </View>
+          )}
+
+          <Text style={styles.sectionTitle}>Objetivo</Text>
+          <View style={styles.card}>
+            <Text style={styles.label}>Tipo</Text>
+            <ChipGroup options={GOAL_OPTIONS} value={goalType} onChange={setGoalType} />
+            <Text style={styles.label}>Nivel de actividad</Text>
+            <ChipGroup options={ACTIVITY_OPTIONS} value={activity} onChange={setActivity} />
+          </View>
+
+          <Text style={styles.sectionTitle}>Tus metas</Text>
+          <View style={styles.card}>
             <Text style={styles.help}>
-              1 R = {carbRationGrams.trim() || DEFAULT_CARB_RATION_GRAMS} g de carbohidratos.
-              Solo informativo.
+              Tus objetivos actuales. Puedes editarlos a mano o copiar la estimación.
             </Text>
-          </>
-        )}
-      </View>
+            <View style={styles.row}>
+              <Field label="Calorías (kcal)" value={kcal} onChange={setKcal} />
+              <Field label="Proteína (g)" value={protein} onChange={setProtein} />
+            </View>
+            <View style={styles.row}>
+              <Field label="Carbos (g)" value={carbs} onChange={setCarbs} />
+              <Field label="Grasa (g)" value={fat} onChange={setFat} />
+            </View>
+            <Pressable
+              style={[styles.secondaryBtn, !estimate && styles.btnDisabled]}
+              onPress={applyEstimate}
+              disabled={!estimate}>
+              <Text style={styles.secondaryText}>
+                {estimate
+                  ? `Usar estimación (${estimate.targetCalories} kcal)`
+                  : 'Usar estimación'}
+              </Text>
+            </Pressable>
+          </View>
+        </>
+      ) : (
+        <>
+          <Text style={styles.sectionTitle}>Datos personales</Text>
+          <View style={styles.card}>
+            <View style={styles.row}>
+              <Field label="Peso (kg)" value={weight} onChange={setWeight} placeholder="75" />
+              <Field label="Altura (cm)" value={height} onChange={setHeight} placeholder="175" />
+            </View>
+            <View style={styles.row}>
+              <Field label="Edad" value={age} onChange={setAge} placeholder="30" />
+              <View style={styles.cell} />
+            </View>
+            <Text style={styles.label}>Sexo</Text>
+            <ChipGroup options={GENDER_OPTIONS} value={gender} onChange={setGender} />
+          </View>
+
+          <Text style={styles.sectionTitle}>Raciones de hidratos de carbono</Text>
+          <View style={styles.card}>
+            <View style={styles.switchRow}>
+              <View style={styles.switchTextWrap}>
+                <Text style={styles.switchTitle}>Modo diabetes</Text>
+                <Text style={styles.help}>
+                  Muestra las raciones de hidratos de carbono (R) junto a los carbohidratos.
+                </Text>
+              </View>
+              <Switch
+                value={diabetesMode}
+                onValueChange={handleToggleDiabetes}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+
+            {diabetesMode && (
+              <>
+                <Text style={styles.label}>Gramos por ración</Text>
+                <TextInput
+                  style={styles.input}
+                  value={carbRationGrams}
+                  onChangeText={setCarbRationGrams}
+                  keyboardType="numeric"
+                  placeholder="10"
+                  placeholderTextColor={colors.textTertiary}
+                />
+                <View style={styles.chips}>
+                  {CARB_RATION_OPTIONS.map((g) => {
+                    const selected = carbRationGrams === String(g);
+                    return (
+                      <Pressable
+                        key={g}
+                        style={[styles.chip, selected && styles.chipSelected]}
+                        onPress={() => setCarbRationGrams(String(g))}>
+                        <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                          {g} g
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <Text style={styles.help}>
+                  1 R = {carbRationGrams.trim() || DEFAULT_CARB_RATION_GRAMS} g de carbohidratos.
+                  Solo informativo.
+                </Text>
+              </>
+            )}
+          </View>
+        </>
+      )}
 
       <Pressable style={styles.saveBtn} onPress={handleSave}>
         <Text style={styles.saveText}>{saved ? 'Guardado ✓' : 'Guardar'}</Text>

@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { useIsActive, useReorderableDrag } from 'react-native-reorderable-list';
 
 import { colors } from '@/utils/colors';
+import { foodMacros, scaleMacros } from '@/utils/macros';
 import { calcCarbRations, formatRations } from '@/utils/rations';
 import type { DailyLogItem } from '@/utils/types';
 
@@ -13,7 +14,7 @@ interface MealItemProps {
   onDelete: (id: number) => void;
   onToggle: (id: number) => void;
   onAmountPress: (item: DailyLogItem) => void;
-  onEdit?: (foodId: number) => void;
+  onEdit?: (item: DailyLogItem) => void;
   onCopy?: (item: DailyLogItem) => void;
   showRations?: boolean;
   gramsPerRation?: number;
@@ -32,6 +33,7 @@ export function MealItem({
   const swipeableRef = useRef<Swipeable>(null);
   const drag = useReorderableDrag();
   const isDragging = useIsActive();
+  const [expanded, setExpanded] = useState(false);
   const food = item.food;
   const recipe = item.recipe;
   if (!food && !recipe) return null;
@@ -44,7 +46,14 @@ export function MealItem({
   const consumed = item.consumed;
   const emoji = food?.emoji ?? recipe?.emoji ?? '🍽️';
   const name = food?.name ?? recipe?.name ?? '';
-  const subtitle = food ? food.brand : recipe ? 'Receta' : null;
+  const canExpand = !!recipe && recipe.ingredients.length > 0 && recipe.totalGrams > 0;
+  const subtitle = food
+    ? food.brand
+    : recipe
+      ? canExpand
+        ? `Receta · ${recipe.ingredients.length} ingredientes`
+        : 'Receta'
+      : null;
 
   let amountLabel = `${item.amount} g`;
   if (food?.servingName && food.servingAmount) {
@@ -92,9 +101,20 @@ export function MealItem({
 
           <View style={styles.content}>
             <View style={styles.nameRow}>
-              <Text style={styles.name} numberOfLines={2}>
-                {name}
-              </Text>
+              <View style={styles.nameLine}>
+                <Text style={styles.name} numberOfLines={2}>
+                  {name}
+                </Text>
+                {canExpand && (
+                  <Pressable onPress={() => setExpanded((e) => !e)} hitSlop={8}>
+                    <Ionicons
+                      name={expanded ? 'chevron-up' : 'chevron-down'}
+                      size={16}
+                      color={colors.textSecondary}
+                    />
+                  </Pressable>
+                )}
+              </View>
               {subtitle ? (
                 <Text style={styles.brand} numberOfLines={1}>
                   {subtitle}
@@ -116,8 +136,8 @@ export function MealItem({
               <Text style={[styles.macro, { color: colors.fat }]}>{Math.round(macros.fat)}G</Text>
             </View>
             <View style={styles.actionButtons}>
-              {onEdit && food && (
-                <Pressable style={styles.editBtn} onPress={() => onEdit(food.id)} hitSlop={6}>
+              {onEdit && (food || recipe) && (
+                <Pressable style={styles.editBtn} onPress={() => onEdit(item)} hitSlop={6}>
                   <Ionicons name="pencil-outline" size={15} color="#007AFF" />
                 </Pressable>
               )}
@@ -128,6 +148,37 @@ export function MealItem({
           </View>
         </Pressable>
       </Swipeable>
+
+      {canExpand && expanded && recipe && (
+        <View style={styles.ingredientsBox}>
+          {recipe.ingredients.map((ing) => {
+            const ingFood = ing.food;
+            if (!ingFood) return null;
+            const full = foodMacros(ingFood, ing.amount);
+            const scaled = scaleMacros(full, recipe.totalGrams, item.amount);
+            const grams = Math.round((ing.amount * item.amount) / recipe.totalGrams);
+            const ration =
+              showRations && gramsPerRation && gramsPerRation > 0
+                ? formatRations(calcCarbRations(scaled.carbs, gramsPerRation))
+                : null;
+            return (
+              <View key={ing.id} style={styles.ingredientRow}>
+                <View style={styles.ingredientTop}>
+                  <Text style={styles.ingredientEmoji}>{ingFood.emoji}</Text>
+                  <Text style={styles.ingredientName} numberOfLines={1}>
+                    {ingFood.name}
+                  </Text>
+                  <Text style={styles.ingredientGrams}>{grams} g</Text>
+                </View>
+                <Text style={styles.ingredientMacros}>
+                  {Math.round(scaled.protein)}P · {Math.round(scaled.carbs)}C
+                  {ration ? ` (${ration} R)` : ''} · {Math.round(scaled.fat)}G
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      )}
     </View>
   );
 }
@@ -192,10 +243,16 @@ const styles = StyleSheet.create({
   nameRow: {
     gap: 1,
   },
+  nameLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   name: {
     fontSize: 13,
     fontWeight: '600',
     color: colors.text,
+    flexShrink: 1,
   },
   brand: {
     fontSize: 11,
@@ -243,5 +300,40 @@ const styles = StyleSheet.create({
   },
   deleteBtn: {
     padding: 2,
+  },
+  ingredientsBox: {
+    backgroundColor: colors.surface,
+    paddingHorizontal: 12,
+    paddingBottom: 10,
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  ingredientRow: {
+    gap: 1,
+    paddingLeft: 8,
+  },
+  ingredientTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  ingredientEmoji: {
+    fontSize: 13,
+  },
+  ingredientName: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.text,
+  },
+  ingredientGrams: {
+    fontSize: 11,
+    color: colors.textSecondary,
+  },
+  ingredientMacros: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    paddingLeft: 19,
   },
 });

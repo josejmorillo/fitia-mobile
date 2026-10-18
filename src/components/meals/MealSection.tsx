@@ -19,7 +19,7 @@ interface MealSectionProps {
   onDelete: (id: number) => void;
   onToggle: (id: number) => void;
   onAmountPress: (item: DailyLogItem) => void;
-  onEdit?: (foodId: number) => void;
+  onEdit?: (item: DailyLogItem) => void;
   onCopy?: (item: DailyLogItem) => void;
   onRepeat?: (mealType: MealType) => void;
   onReorder?: (mealType: MealType, orderedIds: number[]) => void;

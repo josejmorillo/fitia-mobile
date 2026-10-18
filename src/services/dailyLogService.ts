@@ -1,7 +1,8 @@
-import type { DailyLog, DailyLogItem, Food, MacroSummary, MealType, Recipe } from '../utils/types';
+import type { DailyLog, DailyLogItem, Food, MacroSummary, MealType, Recipe, RecipeIngredient } from '../utils/types';
 import { getDatabase } from './database';
 import { addDays, parseDateString } from '../utils/dates';
 import { foodMacros, recipeMacros, type IngredientTotals } from '../utils/macros';
+import { getRecipeIngredients } from './recipeService';
 
 interface DailyLogItemRow {
   id: number;
@@ -48,15 +49,19 @@ function mapFoodFromRow(row: DailyLogItemRow): Food | undefined {
   };
 }
 
-function mapRecipeFromRow(row: DailyLogItemRow): Recipe | undefined {
+function mapRecipeFromRow(
+  row: DailyLogItemRow,
+  recipeTotals: Map<number, IngredientTotals>,
+  recipeIngredients: Map<number, RecipeIngredient[]>
+): Recipe | undefined {
   if (row.r_id == null) return undefined;
   return {
     id: row.r_id,
     name: row.r_name ?? '',
     emoji: row.r_emoji ?? '🍽️',
-    ingredients: [],
+    ingredients: recipeIngredients.get(row.r_id) ?? [],
     servingGrams: row.r_servingGrams,
-    totalGrams: 0,
+    totalGrams: recipeTotals.get(row.r_id)?.totalGrams ?? 0,
   };
 }
 
@@ -115,9 +120,25 @@ async function loadRecipeTotals(recipeIds: number[]): Promise<Map<number, Ingred
   return map;
 }
 
-function mapItemRow(row: DailyLogItemRow, recipeTotals: Map<number, IngredientTotals>): DailyLogItem {
+async function loadRecipeIngredients(
+  recipeIds: number[]
+): Promise<Map<number, RecipeIngredient[]>> {
+  const map = new Map<number, RecipeIngredient[]>();
+  await Promise.all(
+    recipeIds.map(async (id) => {
+      map.set(id, await getRecipeIngredients(id));
+    })
+  );
+  return map;
+}
+
+function mapItemRow(
+  row: DailyLogItemRow,
+  recipeTotals: Map<number, IngredientTotals>,
+  recipeIngredients: Map<number, RecipeIngredient[]>
+): DailyLogItem {
   const food = mapFoodFromRow(row);
-  const recipe = mapRecipeFromRow(row);
+  const recipe = mapRecipeFromRow(row, recipeTotals, recipeIngredients);
   return {
     id: row.id,
     dailyLogId: row.dailyLogId,
@@ -193,8 +214,11 @@ export async function getDailyLogItems(logId: number): Promise<DailyLogItem[]> {
     [logId]
   );
   const recipeIds = Array.from(new Set(rows.map((r) => r.recipeId).filter((id): id is number => id != null)));
-  const recipeTotals = await loadRecipeTotals(recipeIds);
-  return rows.map((row) => mapItemRow(row, recipeTotals));
+  const [recipeTotals, recipeIngredients] = await Promise.all([
+    loadRecipeTotals(recipeIds),
+    loadRecipeIngredients(recipeIds),
+  ]);
+  return rows.map((row) => mapItemRow(row, recipeTotals, recipeIngredients));
 }
 
 export async function getCaloriesByDateRange(

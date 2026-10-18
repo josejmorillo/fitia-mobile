@@ -7,9 +7,11 @@ interface MacroBarProps {
   consumed: number;
   goal: number;
   color: string;
+  /** Raciones de hidratos ya formateadas (ej. "15,0"). Solo en la barra de carbohidratos. */
+  ration?: string;
 }
 
-export function MacroBar({ label, consumed, goal, color }: MacroBarProps) {
+export function MacroBar({ label, consumed, goal, color, ration }: MacroBarProps) {
   const pct = goal > 0 ? Math.min((consumed / goal) * 100, 100) : 0;
 
   return (
@@ -18,6 +20,7 @@ export function MacroBar({ label, consumed, goal, color }: MacroBarProps) {
         <Text style={styles.label}>{label}</Text>
         <Text style={styles.values}>
           {Math.round(consumed)} / {Math.round(goal)}g
+          {ration ? <Text style={styles.ration}> · {ration} R</Text> : null}
         </Text>
       </View>
       <View style={styles.track}>
@@ -45,6 +48,10 @@ const styles = StyleSheet.create({
   values: {
     fontSize: 12,
     color: colors.textTertiary,
+  },
+  ration: {
+    fontWeight: '800',
+    color: colors.primaryDark,
   },
   track: {
     width: '100%',

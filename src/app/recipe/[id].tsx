@@ -10,7 +10,7 @@ import {
 } from '@/services/recipeService';
 import { getOrCreateProfile } from '@/services/profileService';
 import { colors } from '@/utils/colors';
-import { ingredientTotals } from '@/utils/macros';
+import { ingredientTotals, foodMacros } from '@/utils/macros';
 import { calcCarbRations, formatRations } from '@/utils/rations';
 import type { Recipe, RecipeIngredient, UserProfile } from '@/utils/types';
 
@@ -120,15 +120,30 @@ export default function RecipeDetailScreen() {
         </View>
 
         <Text style={styles.sectionTitle}>Ingredientes</Text>
-        {ingredients.map((ing) => (
-          <View key={ing.id} style={styles.ingRow}>
-            <Text style={styles.ingEmoji}>{ing.food?.emoji ?? '🍽️'}</Text>
-            <Text style={styles.ingName} numberOfLines={1}>
-              {ing.food?.name ?? '—'}
-            </Text>
-            <Text style={styles.ingAmount}>{ing.amount} g</Text>
-          </View>
-        ))}
+        {ingredients.map((ing) => {
+          const m = ing.food ? foodMacros(ing.food, ing.amount) : null;
+          const ration =
+            m && showRations && gramsPerRation > 0
+              ? formatRations(calcCarbRations(m.carbs, gramsPerRation))
+              : null;
+          return (
+            <View key={ing.id} style={styles.ingRow}>
+              <View style={styles.ingTop}>
+                <Text style={styles.ingEmoji}>{ing.food?.emoji ?? '🍽️'}</Text>
+                <Text style={styles.ingName} numberOfLines={1}>
+                  {ing.food?.name ?? '—'}
+                </Text>
+                <Text style={styles.ingAmount}>{ing.amount} g</Text>
+              </View>
+              {m && (
+                <Text style={styles.ingMacros}>
+                  {Math.round(m.calories)} kcal · {Math.round(m.protein)}P ·{' '}
+                  {Math.round(m.carbs)}C{ration ? ` (${ration} R)` : ''} · {Math.round(m.fat)}G
+                </Text>
+              )}
+            </View>
+          );
+        })}
       </ScrollView>
     </>
   );
@@ -188,14 +203,22 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   ingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: colors.surface,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    gap: 10,
+    gap: 2,
     marginBottom: 6,
+  },
+  ingTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  ingMacros: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    paddingLeft: 30,
   },
   ingEmoji: {
     fontSize: 20,
