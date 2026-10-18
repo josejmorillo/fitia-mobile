@@ -2,7 +2,7 @@
   "expo": {
     "name": "NutriFit",
     "slug": "nutrifit",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "nutrifit",
@@ -12,7 +12,7 @@
     },
     "android": {
       "package": "com.nutrifit.app",
-      "versionCode": 4,
+      "versionCode": 5,
       "intentFilters": [
         {
           "action": "SEND",
